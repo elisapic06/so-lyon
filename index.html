@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="So Lyon">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-32.png">
+<title>So Lyon — food & activités à Lyon</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo" onclick="go('feed')">so<span>lyon</span></div>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="openSearch()" aria-label="Rechercher">🔍</button>
+        <div class="avatar" onclick="go('profile')">🦁</div>
+      </div>
+    </div>
+  </header>
+
+  <main id="view"></main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-tab="feed" onclick="go('feed')"><span>🍜</span>Fil</button>
+    <button class="tab" data-tab="challenges" onclick="go('challenges')"><span>🏁</span>Défis</button>
+    <button class="tab" data-tab="map" onclick="go('map')"><span>🗺️</span>Carte</button>
+    <button class="tab" data-tab="badges" onclick="go('badges')"><span>🏅</span>Badges</button>
+  </nav>
+</div>
+
+<div id="sheet-backdrop" class="sheet-backdrop" onclick="closeSheet()"></div>
+<div id="sheet" class="sheet"></div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
