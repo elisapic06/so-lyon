@@ -6,20 +6,23 @@ let state = {
   filter: "all",
   liked: new Set(),
   search: "",
+  hood: "Tout Lyon",
   userMarker: null,
 };
 
 const CAT_INFO = {
-  food:     { label: "Food",     icon: "🍽️", bg: "#f7e2d8" },
-  culture:  { label: "Culture",  icon: "🎭", bg: "#f3e7f4" },
-  outdoor:  { label: "Nature",   icon: "🌳", bg: "#e9efe2" },
-  sport:    { label: "Sport",    icon: "🏅", bg: "#eaf1f5" },
-  other:    { label: "Lieu",     icon: "📍", bg: "#f4eada" },
+  food:     { label: "Food",     icon: "🍽️", bg: "#f7e2d8", color: "#ce6a4a" },
+  sortir:   { label: "Sortir",  icon: "🍸", bg: "#f5dce6", color: "#c14f7c" },
+  culture:  { label: "Culture",  icon: "🎭", bg: "#f3e7f4", color: "#8e5fa8" },
+  outdoor:  { label: "Nature",   icon: "🌳", bg: "#e9efe2", color: "#5e7c52" },
+  sport:    { label: "Sport",    icon: "🏅", bg: "#eaf1f5", color: "#4a83a8" },
+  other:    { label: "Lieu",     icon: "📍", bg: "#f4eada", color: "#6b5c4e" },
 };
 
 const AMENITY_LABEL = {
   restaurant: "Restaurant", cafe: "Café", bar: "Bar", fast_food: "Fast-food",
   pub: "Pub", ice_cream: "Glacier", biergarten: "Biergarten", food_court: "Cafétéria",
+  nightclub: "Boîte de nuit",
   bakery: "Boulangerie", pastry: "Pâtisserie",
   park: "Parc", garden: "Jardin", playground: "Aire de jeux", viewpoint: "Point de vue",
   sports_centre: "Centre sportif", fitness_centre: "Salle de fitness", stadium: "Stade",
@@ -133,8 +136,8 @@ function render() {
 /* ---------- fil ---------- */
 function viewFeed() {
   const cats = [
-    ["all", "Tout"], ["food", "🍽️ Food"], ["culture", "🎭 Culture"],
-    ["outdoor", "🌳 Nature"], ["sport", "🏅 Sport"],
+    ["all", "Tout"], ["food", "🍽️ Food"], ["sortir", "🍸 Sortir"],
+    ["culture", "🎭 Culture"], ["outdoor", "🌳 Nature"], ["sport", "🏅 Sport"],
   ];
   const chips = cats.map(([k, l]) =>
     `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setFilter('${k}')">${l}</button>`).join("");
@@ -297,35 +300,45 @@ function viewBadges() {
 
 /* ---------- carte ---------- */
 let mapObj = null;
+const NEIGHBORHOODS = [
+  ["Tout Lyon", null],
+  ["Presqu'île", [45.7676, 4.8342]],
+  ["Vieux Lyon", [45.7622, 4.8270]],
+  ["Croix-Rousse", [45.7772, 4.8301]],
+  ["Part-Dieu", [45.7600, 4.8540]],
+  ["Confluence", [45.7420, 4.8180]],
+  ["Tête d'Or", [45.7770, 4.8530]],
+  ["Gerland", [45.7300, 4.8320]],
+  ["Villeurbanne", [45.7719, 4.8900]],
+  ["Bron", [45.7333, 4.9667]],
+  ["Vaise", [45.7800, 4.8030]],
+  ["Fourvière", [45.7620, 4.8220]],
+];
 
 function viewMap() {
+  const counts = {};
+  PLACES.forEach((p) => counts[p.cat] = (counts[p.cat] || 0) + 1);
   return `
-    <div class="view-head"><h1>Carte</h1><p>${PLACES.length.toLocaleString("fr-FR")} lieux autour de toi</p></div>
+    <div class="view-head"><h1>Carte</h1><p>${PLACES.length.toLocaleString("fr-FR")} lieux à Lyon et alentours</p></div>
+    <div class="search-box">
+      <select id="map-hood" onchange="setMapHood(this.value)">
+        ${NEIGHBORHOODS.map(([n, c]) => `<option value="${n}" ${state.hood === n ? "selected" : ""}>${n}</option>`).join("")}
+      </select>
+    </div>
     <div class="chips" id="map-chips">
-      ${Object.entries(CAT_INFO).slice(0, 4).map(([k, v]) =>
-        `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setMapFilter('${k}')">${v.icon} ${v.label}</button>`).join("")}
+      <button class="chip ${state.filter === "all" ? "active" : ""}" onclick="setMapFilter('all')">✨ Tout</button>
+      ${["food", "sortir", "culture", "outdoor", "sport"].map((k) =>
+        `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setMapFilter('${k}')">${CAT_INFO[k].icon} ${CAT_INFO[k].label} · ${counts[k] || 0}</button>`).join("")}
     </div>
     <div id="map-frame"></div>
     <button class="locate-btn" onclick="locateMe()">📍 Autour de moi</button>
-    <p class="map-hint">Astuce : tape sur une épingle pour ouvrir la fiche du lieu</p>`;
+    <p class="map-hint">Tape une épingle pour ouvrir la fiche du lieu</p>`;
 }
 
-function locateMe() {
-  if (!navigator.geolocation) { toast("GPS non disponible sur cet appareil"); return; }
-  toast("Recherche de ta position…");
-  navigator.geolocation.getCurrentPosition((pos) => {
-    const { latitude: lat, longitude: lon } = pos.coords;
-    if (mapObj) {
-      mapObj.setView([lat, lon], 16);
-      if (state.userMarker) mapObj.removeLayer(state.userMarker);
-      state.userMarker = L.circleMarker([lat, lon], {
-        radius: 9, color: "#fff", weight: 3, fillColor: "#4a83a8", fillOpacity: 1,
-      }).addTo(mapObj);
-      const nearest = PLACES.slice().sort((a, b) =>
-        (Math.hypot(a.lat - lat, a.lon - lon)) - (Math.hypot(b.lat - lat, b.lon - lon)))[0];
-      if (nearest) toast(`Le plus proche : ${nearest.name}`);
-    }
-  }, () => toast("Position refusée — autorise la localisation dans Safari"), { enableHighAccuracy: true, timeout: 8000 });
+function setMapHood(n) {
+  state.hood = n;
+  const c = NEIGHBORHOODS.find(([name]) => name === n)[1];
+  if (c && mapObj) mapObj.flyTo(c, 14, { duration: 0.8 });
 }
 
 function setMapFilter(k) {
@@ -360,6 +373,24 @@ function ensureLeaflet(cb) {
   document.body.appendChild(s2);
 }
 
+function locateMe() {
+  if (!navigator.geolocation) { toast("GPS non disponible sur cet appareil"); return; }
+  toast("Recherche de ta position…");
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const { latitude: lat, longitude: lon } = pos.coords;
+    if (mapObj) {
+      mapObj.flyTo([lat, lon], 16, { duration: 1 });
+      if (state.userMarker) mapObj.removeLayer(state.userMarker);
+      state.userMarker = L.circleMarker([lat, lon], {
+        radius: 9, color: "#fff", weight: 3, fillColor: "#4a83a8", fillOpacity: 1,
+      }).addTo(mapObj);
+      const nearest = PLACES.slice().sort((a, b) =>
+        (Math.hypot(a.lat - lat, a.lon - lon)) - (Math.hypot(b.lat - lat, b.lon - lon)))[0];
+      if (nearest) toast(`Le plus proche : ${nearest.name}`);
+    }
+  }, () => toast("Position refusée — autorise la localisation dans Safari"), { enableHighAccuracy: true, timeout: 8000 });
+}
+
 function initMap() {
   const frame = document.getElementById("map-frame");
   if (!frame) return;
@@ -367,26 +398,29 @@ function initMap() {
   ensureLeaflet(() => buildMap(frame));
 }
 
+function pinIcon(cat) {
+  const info = CAT_INFO[cat] || CAT_INFO.other;
+  const svg = "data:image/svg+xml," + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="42" viewBox="0 0 34 42">` +
+    `<path d="M17 1C8.7 1 2 7.7 2 16c0 11 15 24 15 24s15-13 15-24C32 7.7 25.3 1 17 1z" fill="${info.color}" stroke="#fff" stroke-width="2"/>` +
+    `<text x="17" y="21.5" font-size="12" text-anchor="middle" dominant-baseline="middle">${info.icon}</text></svg>`);
+  return L.icon({ iconUrl: svg, iconSize: [34, 42], iconAnchor: [17, 42], popupAnchor: [0, -36] });
+}
+
 function buildMap(frame) {
   if (mapObj) { mapObj.remove(); mapObj = null; }
   frame.innerHTML = "";
 
-  mapObj = L.map(frame, { zoomControl: false }).setView([45.7578, 4.8320], 13);
+  mapObj = L.map(frame, { zoomControl: false }).setView([45.7578, 4.8320], 12);
   L.control.zoom({ position: "bottomright" }).addTo(mapObj);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "© OpenStreetMap",
+    className: "map-tint",
   }).addTo(mapObj);
 
-  const colors = { food: "#ce6a4a", culture: "#8e5fa8", outdoor: "#5e7c52", sport: "#4a83a8", other: "#6b5c4e" };
-  const svg = (c) => "data:image/svg+xml," + encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 26 34">` +
-    `<path d="M13 0C5.8 0 0 5.8 0 13c0 9 13 21 13 21s13-12 13-21C26 5.8 20.2 0 13 0z" fill="${c}" stroke="#fff" stroke-width="1.5"/>` +
-    `<circle cx="13" cy="13" r="4.5" fill="#fff"/></svg>`);
   const icons = {};
-  Object.keys(colors).forEach((k) => {
-    icons[k] = L.icon({ iconUrl: svg(colors[k]), iconSize: [26, 34], iconAnchor: [13, 34], popupAnchor: [0, -32] });
-  });
+  Object.keys(CAT_INFO).forEach((k) => icons[k] = pinIcon(k));
 
   const places = state.filter !== "all" ? PLACES.filter((p) => p.cat === state.filter) : PLACES;
   const cluster = L.markerClusterGroup({
@@ -395,9 +429,9 @@ function buildMap(frame) {
     showCoverageOnHover: false,
     iconCreateFunction: (c) => {
       const n = c.getChildCount();
-      const size = n < 100 ? 44 : n < 1000 ? 54 : 64;
+      const size = n < 50 ? 42 : n < 300 ? 52 : 62;
       return L.divIcon({
-        html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:rgba(206,106,74,.92);color:#fff;font-weight:700;font-size:.82rem;border:3px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(90,60,40,.25)">${n}</div>`,
+        html: `<div class="cluster-bubble" style="width:${size}px;height:${size}px;font-size:${size < 50 ? .8 : .95}rem">${n}</div>`,
         className: "cluster-wrap",
         iconSize: [size, size],
       });
@@ -405,11 +439,14 @@ function buildMap(frame) {
   });
   places.forEach((p) => {
     const m = L.marker([p.lat, p.lon], { icon: icons[p.cat] || icons.other });
+    const open = isOpenNow(p);
+    const openBadge = open === null ? "" : open ? `<span style="color:#5e7c52;font-weight:700">🟢 ouvert</span>` : `<span style="color:#b5534a;font-weight:700">🔴 fermé</span>`;
     m.bindPopup(
       `${PHOTOS[p.id] ? `<img src="${PHOTOS[p.id]}" style="width:180px;height:100px;object-fit:cover;border-radius:8px;margin-bottom:6px"><br>` : ""}` +
       `<b>${esc(p.name)}</b><br>` +
-      `<span style="color:#8a7a68;font-size:.8em">${esc(AMENITY_LABEL[p.amenity] || "")}</span><br>` +
-      `<a href="#" onclick="event.preventDefault(); if(mapObj) mapObj.closePopup(); openPlace('${p.id}')" style="color:#ce6a4a;font-weight:700">Voir la fiche ›</a>`);
+      `<span style="color:#8a7a68;font-size:.8em">${esc(AMENITY_LABEL[p.amenity] || "")}${openBadge ? " · " + openBadge : ""}</span><br>` +
+      `<a href="#" onclick="event.preventDefault(); if(mapObj) mapObj.closePopup(); openPlace('${p.id}')" style="color:#ce6a4a;font-weight:700">Voir la fiche ›</a>`,
+      { closeButton: false });
     cluster.addLayer(m);
   });
   mapObj.addLayer(cluster);
