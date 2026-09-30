@@ -6,6 +6,7 @@ let state = {
   filter: "all",
   liked: new Set(),
   search: "",
+  userMarker: null,
 };
 
 const CAT_INFO = {
@@ -301,7 +302,26 @@ function viewMap() {
         `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setMapFilter('${k}')">${v.icon} ${v.label}</button>`).join("")}
     </div>
     <div id="map-frame"></div>
+    <button class="locate-btn" onclick="locateMe()">📍 Autour de moi</button>
     <p class="map-hint">Astuce : tape sur une épingle pour ouvrir la fiche du lieu</p>`;
+}
+
+function locateMe() {
+  if (!navigator.geolocation) { toast("GPS non disponible sur cet appareil"); return; }
+  toast("Recherche de ta position…");
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const { latitude: lat, longitude: lon } = pos.coords;
+    if (mapObj) {
+      mapObj.setView([lat, lon], 16);
+      if (state.userMarker) mapObj.removeLayer(state.userMarker);
+      state.userMarker = L.circleMarker([lat, lon], {
+        radius: 9, color: "#fff", weight: 3, fillColor: "#4a83a8", fillOpacity: 1,
+      }).addTo(mapObj);
+      const nearest = PLACES.slice().sort((a, b) =>
+        (Math.hypot(a.lat - lat, a.lon - lon)) - (Math.hypot(b.lat - lat, b.lon - lon)))[0];
+      if (nearest) toast(`Le plus proche : ${nearest.name}`);
+    }
+  }, () => toast("Position refusée — autorise la localisation dans Safari"), { enableHighAccuracy: true, timeout: 8000 });
 }
 
 function setMapFilter(k) {
@@ -310,15 +330,30 @@ function setMapFilter(k) {
 }
 
 function ensureLeaflet(cb) {
-  if (typeof L !== "undefined") { cb(); return; }
-  const css = document.createElement("link");
-  css.rel = "stylesheet";
-  css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-  document.head.appendChild(css);
-  const s = document.createElement("script");
-  s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-  s.onload = cb;
-  document.body.appendChild(s);
+  if (typeof L !== "undefined" && typeof L.MarkerClusterGroup !== "undefined") { cb(); return; }
+  if (typeof L === "undefined") {
+    const css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(css);
+    const s = document.createElement("script");
+    s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    s.onload = () => ensureLeaflet(cb);
+    document.body.appendChild(s);
+    return;
+  }
+  const css2 = document.createElement("link");
+  css2.rel = "stylesheet";
+  css2.href = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css";
+  document.head.appendChild(css2);
+  const css3 = document.createElement("link");
+  css3.rel = "stylesheet";
+  css3.href = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css";
+  document.head.appendChild(css3);
+  const s2 = document.createElement("script");
+  s2.src = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js";
+  s2.onload = cb;
+  document.body.appendChild(s2);
 }
 
 function initMap() {
@@ -350,16 +385,29 @@ function buildMap(frame) {
   });
 
   const places = state.filter !== "all" ? PLACES.filter((p) => p.cat === state.filter) : PLACES;
-  const group = [];
-  places.slice(0, 800).forEach((p) => {
+  const cluster = L.markerClusterGroup({
+    maxClusterRadius: 45,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    iconCreateFunction: (c) => {
+      const n = c.getChildCount();
+      const size = n < 100 ? 44 : n < 1000 ? 54 : 64;
+      return L.divIcon({
+        html: `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:rgba(206,106,74,.92);color:#fff;font-weight:700;font-size:.82rem;border:3px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(90,60,40,.25)">${n}</div>`,
+        className: "cluster-wrap",
+        iconSize: [size, size],
+      });
+    },
+  });
+  places.forEach((p) => {
     const m = L.marker([p.lat, p.lon], { icon: icons[p.cat] || icons.other });
     m.bindPopup(
       `<b>${esc(p.name)}</b><br>` +
       `<span style="color:#8a7a68;font-size:.8em">${esc(AMENITY_LABEL[p.amenity] || "")}</span><br>` +
       `<a href="#" onclick="event.preventDefault(); if(mapObj) mapObj.closePopup(); openPlace('${p.id}')" style="color:#ce6a4a;font-weight:700">Voir la fiche ›</a>`);
-    group.push(m);
+    cluster.addLayer(m);
   });
-  L.layerGroup(group).addTo(mapObj);
+  mapObj.addLayer(cluster);
   setTimeout(() => mapObj.invalidateSize(), 150);
 }
 
