@@ -287,3 +287,58 @@ main { padding: 16px 16px calc(84px + var(--safe-bottom)); }
   background: var(--ink); color: var(--cream); font-weight: 750; font-size: .92rem; cursor: pointer;
 }
 .locate-btn:active { transform: scale(.98); }
+
+/* ============ Photos réelles ============ */
+.post-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sheet-hero.photo { padding: 0; overflow: hidden; }
+.sheet-hero.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ============ Profil (insta/strava) ============ */
+.profile-head { display: flex; align-items: center; gap: 20px; padding: 6px 2px 0; }
+.p-avatar {
+  width: 78px; height: 78px; border-radius: 50%; background: var(--terra-soft);
+  display: flex; align-items: center; justify-content: center; font-size: 2.5rem; flex-shrink: 0;
+  border: 3px solid var(--card); box-shadow: var(--shadow);
+}
+.p-stats { display: flex; gap: 22px; flex: 1; }
+.p-stats > div { text-align: center; }
+.p-stats b { display: block; font-size: 1.15rem; font-weight: 800; letter-spacing: -.02em; }
+.p-stats span { font-size: .74rem; color: var(--ink-faint); font-weight: 600; }
+.p-name { font-size: 1.1rem; font-weight: 800; margin-top: 12px; }
+.p-name span { color: var(--ink-faint); font-weight: 500; font-size: .85rem; margin-left: 6px; }
+.p-bio { color: var(--ink-soft); font-size: .88rem; margin-top: 3px; }
+.p-cta-row { margin-top: 14px; }
+
+/* to-do list */
+.todo { background: var(--card); border-radius: 16px; padding: 6px 14px; box-shadow: var(--shadow); border: 1px solid rgba(238,226,210,.6); }
+.todo-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.todo-row:last-child { border-bottom: none; }
+.todo-check {
+  width: 24px; height: 24px; border-radius: 8px; border: 2px solid var(--line); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: .8rem; color: #fff;
+  transition: all .15s;
+}
+.todo-check.done { background: var(--olive); border-color: var(--olive); }
+.todo-txt { font-size: .92rem; font-weight: 600; }
+.todo-txt.done { text-decoration: line-through; color: var(--ink-faint); }
+
+/* bar chart */
+.chart {
+  display: flex; align-items: flex-end; gap: 10px; height: 130px;
+  background: var(--card); border-radius: 16px; padding: 16px 18px 10px;
+  box-shadow: var(--shadow); border: 1px solid rgba(238,226,210,.6);
+}
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; gap: 4px; }
+.bar {
+  width: 100%; max-width: 30px; border-radius: 8px 8px 3px 3px; position: relative;
+  background: linear-gradient(180deg, var(--terra), var(--gold));
+  min-height: 10px;
+}
+.bar-v { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: .66rem; font-weight: 700; color: var(--ink-faint); }
+.bar-d { font-size: .68rem; font-weight: 700; color: var(--ink-faint); }
+
+/* profile grid (pinterest) */
+.profile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.grid-cell { aspect-ratio: 1; overflow: hidden; border-radius: 10px; cursor: pointer; }
+.grid-cell img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s; }
+.grid-cell:active img { transform: scale(1.06); }

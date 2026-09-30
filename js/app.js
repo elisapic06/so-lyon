@@ -31,6 +31,10 @@ const AMENITY_LABEL = {
 };
 
 /* ---------- data loading ---------- */
+let PHOTOS = {};
+async function loadPhotos() {
+  try { PHOTOS = await (await fetch("data/photos.json")).json(); } catch (e) { PHOTOS = {}; }
+}
 async function loadPlaces() {
   try {
     const r = await fetch("data/places.json");
@@ -121,7 +125,7 @@ function go(view) {
 
 function render() {
   const v = document.getElementById("view");
-  const views = { feed: viewFeed, challenges: viewChallenges, map: viewMap, badges: viewBadges };
+  const views = { feed: viewFeed, challenges: viewChallenges, map: viewMap, badges: viewBadges, profile: viewProfile };
   v.innerHTML = views[state.view]();
   if (state.view === "map") initMap();
 }
@@ -155,7 +159,7 @@ function viewFeed() {
     return `
     <article class="post">
       <div class="post-img" style="background:${info.bg}" onclick="openPlace('${place ? place.id : ""}')">
-        <span>${info.icon}</span>
+        ${place && PHOTOS[place.id] ? `<img src="${PHOTOS[place.id]}" alt="${esc(place.name)}" loading="lazy">` : `<span>${info.icon}</span>`}
         <span class="cat-tag">${info.label}</span>
         ${price ? `<span class="price-tag">${price}</span>` : ""}
       </div>
@@ -402,6 +406,7 @@ function buildMap(frame) {
   places.forEach((p) => {
     const m = L.marker([p.lat, p.lon], { icon: icons[p.cat] || icons.other });
     m.bindPopup(
+      `${PHOTOS[p.id] ? `<img src="${PHOTOS[p.id]}" style="width:180px;height:100px;object-fit:cover;border-radius:8px;margin-bottom:6px"><br>` : ""}` +
       `<b>${esc(p.name)}</b><br>` +
       `<span style="color:#8a7a68;font-size:.8em">${esc(AMENITY_LABEL[p.amenity] || "")}</span><br>` +
       `<a href="#" onclick="event.preventDefault(); if(mapObj) mapObj.closePopup(); openPlace('${p.id}')" style="color:#ce6a4a;font-weight:700">Voir la fiche ›</a>`);
@@ -436,7 +441,9 @@ function openPlace(id) {
 
   openSheet(`
     <div class="sheet-grab"></div>
-    <div class="sheet-hero" style="background:${info.bg}">${info.icon}</div>
+    ${PHOTOS[p.id]
+      ? `<div class="sheet-hero photo"><img src="${PHOTOS[p.id]}" alt="${esc(p.name)}"></div>`
+      : `<div class="sheet-hero" style="background:${info.bg}">${info.icon}</div>`}
     <div class="sheet-body">
       <div class="s-cat">${esc(amenity)}${price ? ` · ${price}` : ""}</div>
       <h2>${esc(p.name)}</h2>
@@ -556,13 +563,12 @@ function toast(msg) {
 /* ---------- profil (avatar) ---------- */
 document.querySelector(".avatar")?.addEventListener("click", (e) => {
   e.stopPropagation();
-  toast("Profil — bientôt !");
+  go("profile");
 });
 
 /* ---------- boot ---------- */
-loadPlaces().then(() => {
+Promise.all([loadPhotos(), loadPlaces()]).then(() => {
   if (PLACES.length) {
-    // link demo posts to real places by name (fuzzy)
     DEMO_POSTS.forEach((post) => {
       if (!PLACES.find((p) => p.name === post.place)) {
         const fuzzy = PLACES.find((p) => p.name.toLowerCase().includes(post.place.toLowerCase().slice(0, 6)));
@@ -573,3 +579,79 @@ loadPlaces().then(() => {
   render();
 });
 render();
+
+
+/* ---------- profil ---------- */
+const PROFILE = {
+  name: "Toi",
+  handle: "@moi.lyon",
+  bio: "Chasseuse de bons plans à Lyon 🦁 | food · culture · sport",
+  followers: 142,
+  following: 89,
+  points: 1240,
+};
+
+const TODO_IDEAS = [
+  { id: "t1", txt: "Brunch au Café Mokxa", done: false },
+  { id: "t2", txt: "Voir la fresque des Lyonnais", done: false },
+  { id: "t3", txt: "Pique-nique au Parc Blandan", done: false },
+  { id: "t4", txt: "Manger chez Daniel et Denise", done: false },
+  { id: "t5", txt: "Cours de climb à Crêpeloup", done: true },
+];
+
+const WEEK_ACTIVITY = [3, 1, 4, 2, 5, 2, 6];
+
+function viewProfile() {
+  const photoPosts = DEMO_POSTS.filter((p) => {
+    const pl = PLACES.find((x) => x.name === p.place);
+    return pl && PHOTOS[pl.id];
+  });
+  const gridHTML = photoPosts.map((p) => {
+    const pl = PLACES.find((x) => x.name === p.place);
+    return `<div class="grid-cell" onclick="openPlace('${pl.id}')" style="background:${CAT_INFO[pl.cat].bg}">
+      <img src="${PHOTOS[pl.id]}" loading="lazy" alt="${esc(pl.name)}">
+    </div>`;
+  }).join("");
+
+  const max = Math.max(...WEEK_ACTIVITY);
+  const bars = WEEK_ACTIVITY.map((v, i) => {
+    const days = ["L", "M", "M", "J", "V", "S", "D"];
+    return `<div class="bar-col"><div class="bar" style="height:${(v / max) * 100}%"><span class="bar-v">${v}</span></div><span class="bar-d">${days[i]}</span></div>`;
+  }).join("");
+
+  const todoHTML = TODO_IDEAS.map((t) => `
+    <div class="todo-row" onclick="toggleTodo('${t.id}')">
+      <span class="todo-check ${t.done ? "done" : ""}">${t.done ? "✓" : ""}</span>
+      <span class="todo-txt ${t.done ? "done" : ""}">${esc(t.txt)}</span>
+    </div>`).join("");
+
+  return `
+    <div class="profile-head">
+      <div class="p-avatar">🦁</div>
+      <div class="p-stats">
+        <div><b>${PROFILE.points}</b><span>points</span></div>
+        <div><b>${PROFILE.followers}</b><span>followers</span></div>
+        <div><b>${PROFILE.following}</b><span>suivis</span></div>
+      </div>
+    </div>
+    <div class="p-name">${esc(PROFILE.name)} <span>${esc(PROFILE.handle)}</span></div>
+    <div class="p-bio">${esc(PROFILE.bio)}</div>
+    <div class="p-cta-row">
+      <button class="scta primary" style="flex:1" onclick="toast('Edition du profil — avec les comptes réels 😉')">Modifier le profil</button>
+    </div>
+
+    <div class="section-title"><h2>Idées à tester</h2><span style="font-size:.8rem;color:var(--ink-faint)">${TODO_IDEAS.filter(t=>!t.done).length} en attente</span></div>
+    <div class="todo">${todoHTML}</div>
+
+    <div class="section-title"><h2>Ma semaine</h2><span style="font-size:.8rem;color:var(--ink-faint)">${WEEK_ACTIVITY.reduce((a,b)=>a+b,0)} activités</span></div>
+    <div class="chart">${bars}</div>
+
+    <div class="section-title"><h2>Mes posts</h2></div>
+    <div class="profile-grid">${gridHTML || '<div class="empty">Tes posts photo apparaîtront ici</div>'}</div>`;
+}
+
+function toggleTodo(id) {
+  const t = TODO_IDEAS.find((x) => x.id === id);
+  t.done = !t.done;
+  render();
+}
