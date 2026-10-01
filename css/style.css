@@ -375,3 +375,12 @@ main { padding: 16px 16px calc(84px + var(--safe-bottom)); }
 }
 .todo-vis { font-size: .85rem; }
 .todo-del { font-size: .8rem; color: var(--ink-faint); padding: 4px; }
+
+/* to-do: private marker = discreet dot */
+.todo-row.private .todo-txt { color: var(--ink-soft); }
+.todo-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--gold);
+  flex-shrink: 0; margin-left: 2px;
+}
+.todo-del { order: 2; }
+.todo-dot { order: 3; }

@@ -659,11 +659,11 @@ function viewProfile() {
 
   const shown = TODO_IDEAS.filter((t) => todoView === "all" || (todoView === "pub" ? t.pub : !t.pub));
   const todoHTML = shown.map((t) => `
-    <div class="todo-row" onclick="toggleTodo('${t.id}')">
+    <div class="todo-row ${t.pub ? "" : "private"}" onclick="toggleTodo('${t.id}')">
       <span class="todo-check ${t.done ? "done" : ""}">${t.done ? "✓" : ""}</span>
       <span class="todo-txt ${t.done ? "done" : ""}">${esc(t.txt)}</span>
-      <span class="todo-vis" title="${t.pub ? "Visible par tous" : "Privé"}">${t.pub ? "🌍" : "🔒"}</span>
       <span class="todo-del" onclick="event.stopPropagation(); delTodo('${t.id}')">✕</span>
+      ${t.pub ? "" : `<span class="todo-dot" title="Privé"></span>`}
     </div>`).join("");
 
   return `
@@ -684,15 +684,15 @@ function viewProfile() {
     <div class="section-title"><h2>Ma to-do list</h2><span style="font-size:.8rem;color:var(--ink-faint)">${TODO_IDEAS.filter(t=>!t.done).length} en attente</span></div>
     <div class="chips">
       <button class="chip ${todoView === "all" ? "active" : ""}" onclick="setTodoView('all')">Toutes</button>
-      <button class="chip ${todoView === "pub" ? "active" : ""}" onclick="setTodoView('pub')">🌍 Publiques</button>
-      <button class="chip ${todoView === "priv" ? "active" : ""}" onclick="setTodoView('priv')">🔒 Privées</button>
+      <button class="chip ${todoView === "pub" ? "active" : ""}" onclick="setTodoView('pub')">Pour tous</button>
+      <button class="chip ${todoView === "priv" ? "active" : ""}" onclick="setTodoView('priv')">Privées</button>
     </div>
     <div class="todo">${todoHTML || '<div class="empty" style="padding:18px">Rien ici — ajoute une idée !</div>'}</div>
     <div class="todo-add">
       <input id="todo-input" placeholder="Ex : brunch chez Mokxa…" onkeydown="if(event.key==='Enter')addTodo()">
       <div class="todo-vis-toggle">
-        <button class="chip ${todoAddPub ? "active" : ""}" onclick="todoAddPub=true;renderTodoOnly()">🌍</button>
-        <button class="chip ${!todoAddPub ? "active" : ""}" onclick="todoAddPub=false;renderTodoOnly()">🔒</button>
+        <button class="chip ${todoAddPub ? "active" : ""}" onclick="todoAddPub=true;renderTodoOnly()">Pour tous</button>
+        <button class="chip ${!todoAddPub ? "active" : ""}" onclick="todoAddPub=false;renderTodoOnly()">Privé</button>
       </div>
       <button class="todo-add-btn" onclick="addTodo()">＋</button>
     </div>
@@ -726,7 +726,7 @@ function addTodo() {
   TODO_IDEAS.unshift({ id: "t" + Date.now(), txt, done: false, pub: todoAddPub });
   saveTodos();
   render();
-  toast(todoAddPub ? "Idée publique ajoutée 🌍" : "Idée privée ajoutée 🔒");
+  toast(todoAddPub ? "Idée publique ajoutée" : "Idée privée ajoutée");
 }
 
 function setTodoView(v) {
