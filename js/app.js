@@ -439,14 +439,7 @@ function buildMap(frame) {
   });
   places.forEach((p) => {
     const m = L.marker([p.lat, p.lon], { icon: icons[p.cat] || icons.other });
-    const open = isOpenNow(p);
-    const openBadge = open === null ? "" : open ? `<span style="color:#5e7c52;font-weight:700">🟢 ouvert</span>` : `<span style="color:#b5534a;font-weight:700">🔴 fermé</span>`;
-    m.bindPopup(
-      `${PHOTOS[p.id] ? `<img src="${PHOTOS[p.id]}" style="width:180px;height:100px;object-fit:cover;border-radius:8px;margin-bottom:6px"><br>` : ""}` +
-      `<b>${esc(p.name)}</b><br>` +
-      `<span style="color:#8a7a68;font-size:.8em">${esc(AMENITY_LABEL[p.amenity] || "")}${openBadge ? " · " + openBadge : ""}</span><br>` +
-      `<a href="#" onclick="event.preventDefault(); if(mapObj) mapObj.closePopup(); openPlace('${p.id}')" style="color:#ce6a4a;font-weight:700">Voir la fiche ›</a>`,
-      { closeButton: false });
+    m.on("click", () => openPlace(p.id));
     cluster.addLayer(m);
   });
   mapObj.addLayer(cluster);
@@ -628,13 +621,21 @@ const PROFILE = {
   points: 1240,
 };
 
-const TODO_IDEAS = [
-  { id: "t1", txt: "Brunch au Café Mokxa", done: false },
-  { id: "t2", txt: "Voir la fresque des Lyonnais", done: false },
-  { id: "t3", txt: "Pique-nique au Parc Blandan", done: false },
-  { id: "t4", txt: "Manger chez Daniel et Denise", done: false },
-  { id: "t5", txt: "Cours de climb à Crêpeloup", done: true },
+let TODO_IDEAS = [
+  { id: "t1", txt: "Brunch au Café Mokxa", done: false, pub: true },
+  { id: "t2", txt: "Voir la fresque des Lyonnais", done: false, pub: true },
+  { id: "t3", txt: "Pique-nique au Parc Blandan", done: false, pub: false },
+  { id: "t4", txt: "Manger chez Daniel et Denise", done: false, pub: false },
+  { id: "t5", txt: "Cours de climb à Crêpeloup", done: true, pub: true },
 ];
+try {
+  const saved = JSON.parse(localStorage.getItem("so-lyon-todos"));
+  if (Array.isArray(saved) && saved.length) TODO_IDEAS = saved;
+} catch (e) {}
+function saveTodos() {
+  try { localStorage.setItem("so-lyon-todos", JSON.stringify(TODO_IDEAS)); } catch (e) {}
+}
+let todoView = "all";
 
 const WEEK_ACTIVITY = [3, 1, 4, 2, 5, 2, 6];
 
@@ -656,10 +657,13 @@ function viewProfile() {
     return `<div class="bar-col"><div class="bar" style="height:${(v / max) * 100}%"><span class="bar-v">${v}</span></div><span class="bar-d">${days[i]}</span></div>`;
   }).join("");
 
-  const todoHTML = TODO_IDEAS.map((t) => `
+  const shown = TODO_IDEAS.filter((t) => todoView === "all" || (todoView === "pub" ? t.pub : !t.pub));
+  const todoHTML = shown.map((t) => `
     <div class="todo-row" onclick="toggleTodo('${t.id}')">
       <span class="todo-check ${t.done ? "done" : ""}">${t.done ? "✓" : ""}</span>
       <span class="todo-txt ${t.done ? "done" : ""}">${esc(t.txt)}</span>
+      <span class="todo-vis" title="${t.pub ? "Visible par tous" : "Privé"}">${t.pub ? "🌍" : "🔒"}</span>
+      <span class="todo-del" onclick="event.stopPropagation(); delTodo('${t.id}')">✕</span>
     </div>`).join("");
 
   return `
@@ -677,8 +681,21 @@ function viewProfile() {
       <button class="scta primary" style="flex:1" onclick="toast('Edition du profil — avec les comptes réels 😉')">Modifier le profil</button>
     </div>
 
-    <div class="section-title"><h2>Idées à tester</h2><span style="font-size:.8rem;color:var(--ink-faint)">${TODO_IDEAS.filter(t=>!t.done).length} en attente</span></div>
-    <div class="todo">${todoHTML}</div>
+    <div class="section-title"><h2>Ma to-do list</h2><span style="font-size:.8rem;color:var(--ink-faint)">${TODO_IDEAS.filter(t=>!t.done).length} en attente</span></div>
+    <div class="chips">
+      <button class="chip ${todoView === "all" ? "active" : ""}" onclick="setTodoView('all')">Toutes</button>
+      <button class="chip ${todoView === "pub" ? "active" : ""}" onclick="setTodoView('pub')">🌍 Publiques</button>
+      <button class="chip ${todoView === "priv" ? "active" : ""}" onclick="setTodoView('priv')">🔒 Privées</button>
+    </div>
+    <div class="todo">${todoHTML || '<div class="empty" style="padding:18px">Rien ici — ajoute une idée !</div>'}</div>
+    <div class="todo-add">
+      <input id="todo-input" placeholder="Ex : brunch chez Mokxa…" onkeydown="if(event.key==='Enter')addTodo()">
+      <div class="todo-vis-toggle">
+        <button class="chip ${todoAddPub ? "active" : ""}" onclick="todoAddPub=true;renderTodoOnly()">🌍</button>
+        <button class="chip ${!todoAddPub ? "active" : ""}" onclick="todoAddPub=false;renderTodoOnly()">🔒</button>
+      </div>
+      <button class="todo-add-btn" onclick="addTodo()">＋</button>
+    </div>
 
     <div class="section-title"><h2>Ma semaine</h2><span style="font-size:.8rem;color:var(--ink-faint)">${WEEK_ACTIVITY.reduce((a,b)=>a+b,0)} activités</span></div>
     <div class="chart">${bars}</div>
@@ -687,8 +704,34 @@ function viewProfile() {
     <div class="profile-grid">${gridHTML || '<div class="empty">Tes posts photo apparaîtront ici</div>'}</div>`;
 }
 
+let todoAddPub = true;
+
 function toggleTodo(id) {
   const t = TODO_IDEAS.find((x) => x.id === id);
   t.done = !t.done;
+  saveTodos();
   render();
 }
+
+function delTodo(id) {
+  TODO_IDEAS = TODO_IDEAS.filter((x) => x.id !== id);
+  saveTodos();
+  render();
+}
+
+function addTodo() {
+  const inp = document.getElementById("todo-input");
+  const txt = (inp.value || "").trim();
+  if (!txt) { toast("Écris d'abord ton idée 😉"); return; }
+  TODO_IDEAS.unshift({ id: "t" + Date.now(), txt, done: false, pub: todoAddPub });
+  saveTodos();
+  render();
+  toast(todoAddPub ? "Idée publique ajoutée 🌍" : "Idée privée ajoutée 🔒");
+}
+
+function setTodoView(v) {
+  todoView = v;
+  render();
+}
+
+function renderTodoOnly() { render(); }

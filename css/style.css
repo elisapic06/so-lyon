@@ -359,3 +359,19 @@ main { padding: 16px 16px calc(84px + var(--safe-bottom)); }
   background-repeat: no-repeat; background-position: right 15px center;
 }
 #map-frame { height: calc(100vh - 320px); min-height: 340px; }
+
+/* ============ To-do add form ============ */
+.todo-add { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+.todo-add input {
+  flex: 1; padding: 12px 14px; border-radius: 13px; border: 1.5px solid var(--line);
+  background: var(--card); font-size: .9rem; outline: none; color: var(--ink); min-width: 0;
+}
+.todo-add input:focus { border-color: var(--terra); }
+.todo-vis-toggle { display: flex; gap: 5px; }
+.todo-vis-toggle .chip { padding: 9px 11px; }
+.todo-add-btn {
+  width: 44px; height: 44px; border-radius: 13px; border: none; flex-shrink: 0;
+  background: var(--terra); color: #fff; font-size: 1.3rem; font-weight: 600; cursor: pointer;
+}
+.todo-vis { font-size: .85rem; }
+.todo-del { font-size: .8rem; color: var(--ink-faint); padding: 4px; }
