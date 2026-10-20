@@ -403,3 +403,18 @@ main { padding: 16px 16px calc(84px + var(--safe-bottom)); }
   background: var(--olive-soft); border-radius: 999px; padding: 2px 8px;
   vertical-align: middle; margin-left: 4px;
 }
+
+/* ============ Auth ============ */
+.auth-wrap { text-align: center; padding: 40px 10px 20px; }
+.auth-logo { font-size: 2.6rem; font-weight: 800; letter-spacing: -.04em; color: var(--terra); }
+.auth-logo span { color: var(--ink); font-weight: 300; font-style: italic; }
+.auth-tag { color: var(--ink-soft); margin: 10px 0 24px; font-size: .95rem; }
+.auth-card {
+  background: var(--card); border-radius: 20px; padding: 22px 18px;
+  box-shadow: var(--shadow); border: 1px solid rgba(238,226,210,.6); text-align: left;
+}
+.auth-card .field label { color: var(--ink-soft); }
+.auth-skip {
+  background: none; border: none; color: var(--ink-faint); margin-top: 22px;
+  font-size: .88rem; font-weight: 650; cursor: pointer;
+}

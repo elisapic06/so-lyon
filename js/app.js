@@ -128,7 +128,7 @@ function go(view) {
 
 function render() {
   const v = document.getElementById("view");
-  const views = { feed: viewFeed, challenges: viewChallenges, map: viewMap, badges: viewBadges, profile: viewProfile };
+  const views = { feed: viewFeed, challenges: viewChallenges, map: viewMap, badges: viewBadges, profile: viewProfile, auth: viewAuth };
   v.innerHTML = views[state.view]();
   if (state.view === "map") initMap();
 }
@@ -151,7 +151,10 @@ function viewFeed() {
   }
 
   const cards = posts.map((p) => {
-    const place = PLACES.find((pl) => pl.name === p.place);
+    let place = null;
+    if (p.placeId) place = placeById(p.placeId);
+    if (!place && p.place) place = PLACES.find((pl) => pl.name === p.place);
+    if (place) p.placeId = place.id;
     const info = place ? CAT_INFO[place.cat] : CAT_INFO.other;
     const price = place ? displayPrice(place) : "";
     const open = place ? isOpenNow(place) : null;
@@ -593,7 +596,8 @@ function toast(msg) {
 /* ---------- profil (avatar) ---------- */
 document.querySelector(".avatar")?.addEventListener("click", (e) => {
   e.stopPropagation();
-  go("profile");
+  if (CLOUD.enabled && !CLOUD.user) go("auth");
+  else go("profile");
 });
 
 /* ---------- storage (autonome: données dans le navigateur) ---------- */
@@ -706,6 +710,27 @@ function pickPostPlace(id) {
 async function submitPost() {
   const text = (document.getElementById("post-text").value || "").trim();
   if (!selectedPlaceId && !text) { toast("Ajoute un lieu ou un texte 😉"); return; }
+
+  // mode cloud connecté → publication partagée
+  if (CLOUD.enabled && CLOUD.user) {
+    try {
+      const place = selectedPlaceId ? placeById(selectedPlaceId) : null;
+      await publishPostCloud(place, text, newPostPhoto);
+      if (newPostPhotoURL) URL.revokeObjectURL(newPostPhotoURL);
+      newPostPhoto = null; newPostPhotoURL = null; selectedPlaceId = null;
+      closeSheet();
+      state.view = "feed";
+      const cloudPosts = await fetchCloudPosts();
+      state.allPosts = [...cloudPosts, ...USER_POSTS, ...DEMO_POSTS];
+      render();
+      toast("Publié pour toute la communauté ! 🎉");
+      return;
+    } catch (e) {
+      toast("Erreur cloud : " + e.message);
+    }
+  }
+
+  // mode local
   const id = "up" + Date.now();
   const post = {
     id, user: "Toi", emoji: "🦁", meta: "à l'instant",
@@ -736,7 +761,50 @@ function hydrateUserPosts(list) {
   }));
 }
 
+/* ---------- auth (connexion / inscription) ---------- */
+function viewAuth() {
+  return `
+    <div class="auth-wrap">
+      <div class="auth-logo">so<span>lyon</span></div>
+      <p class="auth-tag">Les bons plans food &amp; sorties à Lyon,<br>partagés par ceux qui y vivent.</p>
+      <div class="auth-card">
+        <div class="field"><label>Email</label><input id="auth-email" type="email" placeholder="toi@mail.com"></div>
+        <div class="field"><label>Mot de passe</label><input id="auth-pass" type="password" placeholder="6 caractères min."></div>
+        <div class="field"><label>Pseudo</label><input id="auth-handle" placeholder="ex: camille.lyon"></div>
+        <button class="scta primary" style="width:100%" onclick="doSignUp()">Créer mon compte</button>
+        <button class="scta" style="width:100%;margin-top:8px" onclick="doSignIn()">J'ai déjà un compte</button>
+      </div>
+      <button class="auth-skip" onclick="state.view='feed'; render();">Continuer sans compte →</button>
+    </div>`;
+}
+
+async function doSignUp() {
+  const email = document.getElementById("auth-email").value.trim();
+  const pass = document.getElementById("auth-pass").value;
+  const handle = document.getElementById("auth-handle").value.trim().toLowerCase().replace(/[^a-z0-9._]/g, "");
+  if (!email || pass.length < 6 || !handle) { toast("Remplis tout (mot de passe : 6 caractères min.)"); return; }
+  if (!CLOUD.enabled) { toast("Mode local — le cloud arrive bientôt 😉"); return; }
+  try {
+    await signUp(email, pass, handle, handle);
+    toast("Compte créé ! Vérifie tes emails si demandé 📬");
+    state.view = "feed"; render();
+  } catch (e) { toast("Erreur : " + e.message); }
+}
+
+async function doSignIn() {
+  const email = document.getElementById("auth-email").value.trim();
+  const pass = document.getElementById("auth-pass").value;
+  if (!email || !pass) { toast("Email + mot de passe requis"); return; }
+  if (!CLOUD.enabled) { toast("Mode local — le cloud arrive bientôt 😉"); return; }
+  try {
+    await signIn(email, pass);
+    toast("Bon retour 🦁");
+    state.view = "feed"; render();
+  } catch (e) { toast("Erreur : " + e.message); }
+}
+
 /* ---------- boot ---------- */
+initCloud().finally(() => {
 Promise.all([loadPhotos(), loadPlaces()]).then(async () => {
   if (PLACES.length) {
     DEMO_POSTS.forEach((post) => {
@@ -748,7 +816,14 @@ Promise.all([loadPhotos(), loadPlaces()]).then(async () => {
   }
   state.allPosts = [...USER_POSTS, ...DEMO_POSTS];
   await hydrateUserPosts(state.allPosts);
+  if (CLOUD.enabled && CLOUD.user) {
+    try {
+      const cloudPosts = await fetchCloudPosts();
+      state.allPosts = [...cloudPosts, ...state.allPosts];
+    } catch (e) { console.warn("cloud posts:", e); }
+  }
   render();
+});
 });
 render();
 
