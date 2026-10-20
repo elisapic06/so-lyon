@@ -132,3 +132,16 @@ end $$;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute procedure public.handle_new_user();
+
+-- ============================================================
+-- Fonctions de compteur de likes (sûres, atomiques)
+-- ============================================================
+create or replace function public.increment_like(p uuid)
+returns void language sql security definer set search_path = public as $$
+  update public.posts set likes = likes + 1 where id = p;
+$$;
+
+create or replace function public.decrement_like(p uuid)
+returns void language sql security definer set search_path = public as $$
+  update public.posts set likes = greatest(likes - 1, 0) where id = p;
+$$;

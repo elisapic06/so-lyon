@@ -204,7 +204,11 @@ function viewFeed() {
 function setFilter(f) { state.filter = f; render(); }
 
 function toggleLike(id) {
-  state.liked.has(id) ? state.liked.delete(id) : state.liked.add(id);
+  const liked = state.liked.has(id);
+  liked ? state.liked.delete(id) : state.liked.add(id);
+  if (CLOUD.enabled && CLOUD.user && String(id).includes("-")) {
+    toggleLikeCloud(id, !liked).catch((e) => toast("Erreur like: " + e.message));
+  }
   render();
 }
 
