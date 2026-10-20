@@ -142,9 +142,9 @@ function viewFeed() {
   const chips = cats.map(([k, l]) =>
     `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setFilter('${k}')">${l}</button>`).join("");
 
-  let posts = DEMO_POSTS;
+  let posts = state.allPosts || DEMO_POSTS;
   if (state.filter !== "all") {
-    posts = DEMO_POSTS.filter((post) => {
+    posts = (state.allPosts || DEMO_POSTS).filter((post) => {
       const place = PLACES.find((p) => p.name === post.place);
       return place && place.cat === state.filter;
     });
@@ -162,7 +162,7 @@ function viewFeed() {
     return `
     <article class="post">
       <div class="post-img" style="background:${info.bg}" onclick="openPlace('${place ? place.id : ""}')">
-        ${place && PHOTOS[place.id] ? `<img src="${PHOTOS[place.id]}" alt="${esc(place.name)}" loading="lazy">` : `<span>${info.icon}</span>`}
+        ${p._photoURL ? `<img src="${p._photoURL}" alt="">` : place && PHOTOS[place.id] ? `<img src="${PHOTOS[place.id]}" alt="${esc(place.name)}" loading="lazy">` : `<span>${info.icon}</span>`}
         <span class="cat-tag">${info.label}</span>
         ${price ? `<span class="price-tag">${price}</span>` : ""}
       </div>
@@ -170,7 +170,7 @@ function viewFeed() {
         <div class="post-user">
           <div class="u-av">${p.emoji}</div>
           <div>
-            <div class="u-name">${esc(p.user)}</div>
+            <div class="u-name">${esc(p.user)}${p.mine ? ' <span class="mine-flag">toi</span>' : ""}</div>
             <div class="u-meta">${esc(p.meta)}</div>
           </div>
         </div>
@@ -195,7 +195,7 @@ function viewFeed() {
     <div class="view-head"><h1>Le fil de Lyon</h1><p>Les bons plans partagés par la communauté</p></div>
     <div class="chips">${chips}</div>
     ${cards || `<div class="empty">Pas encore de post dans cette catégorie 🌱</div>`}
-    <button class="fab" onclick="toast('Création de post — bientôt !')" aria-label="Créer">＋</button>`;
+    <button class="fab" onclick="openCreatePost()" aria-label="Créer">＋</button>`;
 }
 
 function setFilter(f) { state.filter = f; render(); }
@@ -596,8 +596,147 @@ document.querySelector(".avatar")?.addEventListener("click", (e) => {
   go("profile");
 });
 
+/* ---------- storage (autonome: données dans le navigateur) ---------- */
+const DB_NAME = "so-lyon-db";
+function idb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains("photos")) db.createObjectStore("photos");
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function savePhoto(id, blob) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction("photos", "readwrite");
+    tx.objectStore("photos").put(blob, id);
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+}
+async function loadPhoto(id) {
+  const db = await idb();
+  return new Promise((res) => {
+    const tx = db.transaction("photos", "readonly");
+    const rq = tx.objectStore("photos").get(id);
+    rq.onsuccess = () => res(rq.result || null);
+    rq.onerror = () => res(null);
+  });
+}
+
+let USER_POSTS = [];
+try {
+  const saved = JSON.parse(localStorage.getItem("so-lyon-posts"));
+  if (Array.isArray(saved)) USER_POSTS = saved;
+} catch (e) {}
+function saveUserPosts() {
+  try { localStorage.setItem("so-lyon-posts", JSON.stringify(USER_POSTS)); } catch (e) {}
+}
+
+/* ---------- création de post ---------- */
+let newPostPhoto = null;
+let newPostPhotoURL = null;
+let selectedPlaceId = null;
+
+function openCreatePost() {
+  openSheet(`
+    <div class="sheet-grab"></div>
+    <div class="sheet-body" style="padding-bottom:20px">
+      <h2 style="font-size:1.2rem">Nouveau post 📸</h2>
+      <p style="color:var(--ink-faint);font-size:.85rem;margin-top:3px">Partage ton bon plan avec la communauté</p>
+
+      <label class="photo-picker" id="photo-picker">
+        <input type="file" accept="image/*" id="post-photo-input" style="display:none" onchange="onPostPhoto(this)">
+        <span id="photo-picker-label">📷 Ajouter une photo</span>
+      </label>
+      <img id="photo-preview" class="photo-preview" style="display:none">
+
+      <div class="field" style="margin-top:12px">
+        <label>Lieu</label>
+        <input id="post-place-input" placeholder="Rechercher un lieu…" oninput="searchPostPlace(this.value)">
+        <div id="post-place-results"></div>
+      </div>
+      <div class="field">
+        <label>Ton texte</label>
+        <textarea id="post-text" placeholder="Pourquoi ce lieu est top ?"></textarea>
+      </div>
+      <button class="scta primary" style="width:100%" onclick="submitPost()">Publier</button>
+    </div>`);
+}
+
+function onPostPhoto(input) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  if (newPostPhotoURL) URL.revokeObjectURL(newPostPhotoURL);
+  newPostPhoto = f;
+  newPostPhotoURL = URL.createObjectURL(f);
+  const img = document.getElementById("photo-preview");
+  img.src = newPostPhotoURL;
+  img.style.display = "block";
+  document.getElementById("photo-picker-label").textContent = "✓ Photo ajoutée";
+}
+
+function searchPostPlace(q) {
+  const box = document.getElementById("post-place-results");
+  q = q.trim().toLowerCase();
+  selectedPlaceId = null;
+  if (q.length < 2) { box.innerHTML = ""; return; }
+  const res = PLACES.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 8);
+  box.innerHTML = res.map((p) => `
+    <div class="place-pick" onclick="pickPostPlace('${p.id}')">
+      <span>${CAT_INFO[p.cat] ? CAT_INFO[p.cat].icon : "📍"}</span>
+      <div>
+        <div style="font-weight:700;font-size:.9rem">${esc(p.name)}</div>
+        <div style="font-size:.75rem;color:var(--ink-faint)">${esc(p.street || AMENITY_LABEL[p.amenity] || "")}</div>
+      </div>
+    </div>`).join("");
+}
+
+function pickPostPlace(id) {
+  const p = placeById(id);
+  if (!p) return;
+  selectedPlaceId = id;
+  document.getElementById("post-place-input").value = p.name;
+  document.getElementById("post-place-results").innerHTML = "";
+}
+
+async function submitPost() {
+  const text = (document.getElementById("post-text").value || "").trim();
+  if (!selectedPlaceId && !text) { toast("Ajoute un lieu ou un texte 😉"); return; }
+  const id = "up" + Date.now();
+  const post = {
+    id, user: "Toi", emoji: "🦁", meta: "à l'instant",
+    text, place: selectedPlaceId ? placeById(selectedPlaceId).name : "",
+    likes: 0, comments: 0, tags: [], mine: true,
+  };
+  if (newPostPhoto) {
+    try { await savePhoto(id, newPostPhoto); post.hasPhoto = true; } catch (e) {}
+  }
+  USER_POSTS.unshift(post);
+  saveUserPosts();
+  if (newPostPhotoURL) URL.revokeObjectURL(newPostPhotoURL);
+  newPostPhoto = null; newPostPhotoURL = null; selectedPlaceId = null;
+  closeSheet();
+  state.view = "feed";
+  render();
+  toast("Post publié ! 🎉");
+}
+
+function hydrateUserPosts() {
+  return Promise.all(USER_POSTS.map(async (p) => {
+    if (p.hasPhoto && !p._photoURL) {
+      const blob = await loadPhoto(p.id);
+      if (blob) p._photoURL = URL.createObjectURL(blob);
+    }
+    return p;
+  }));
+}
+
 /* ---------- boot ---------- */
-Promise.all([loadPhotos(), loadPlaces()]).then(() => {
+Promise.all([loadPhotos(), loadPlaces()]).then(async () => {
   if (PLACES.length) {
     DEMO_POSTS.forEach((post) => {
       if (!PLACES.find((p) => p.name === post.place)) {
@@ -606,6 +745,8 @@ Promise.all([loadPhotos(), loadPlaces()]).then(() => {
       }
     });
   }
+  state.allPosts = [...USER_POSTS, ...DEMO_POSTS];
+  await hydrateUserPosts();
   render();
 });
 render();

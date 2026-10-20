@@ -384,3 +384,22 @@ main { padding: 16px 16px calc(84px + var(--safe-bottom)); }
 }
 .todo-del { order: 2; }
 .todo-dot { order: 3; }
+
+/* ============ Création de post ============ */
+.photo-picker {
+  display: flex; align-items: center; justify-content: center;
+  border: 2px dashed var(--terra); border-radius: 14px;
+  padding: 26px; margin-top: 14px; color: var(--terra); font-weight: 700;
+  font-size: .95rem; cursor: pointer; background: var(--terra-soft);
+}
+.photo-preview { width: 100%; border-radius: 14px; margin-top: 10px; display: block; }
+.place-pick {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: var(--cream-2); border-radius: 12px; margin-top: 6px; cursor: pointer;
+}
+.place-pick:hover, .place-pick:active { background: var(--terra-soft); }
+.mine-flag {
+  font-size: .62rem; font-weight: 800; color: var(--olive);
+  background: var(--olive-soft); border-radius: 999px; padding: 2px 8px;
+  vertical-align: middle; margin-left: 4px;
+}

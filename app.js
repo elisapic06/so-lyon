@@ -6,19 +6,23 @@ let state = {
   filter: "all",
   liked: new Set(),
   search: "",
+  hood: "Tout Lyon",
+  userMarker: null,
 };
 
 const CAT_INFO = {
-  food:     { label: "Food",     icon: "🍽️", bg: "#f7e2d8" },
-  culture:  { label: "Culture",  icon: "🎭", bg: "#f3e7f4" },
-  outdoor:  { label: "Nature",   icon: "🌳", bg: "#e9efe2" },
-  sport:    { label: "Sport",    icon: "🏅", bg: "#eaf1f5" },
-  other:    { label: "Lieu",     icon: "📍", bg: "#f4eada" },
+  food:     { label: "Food",     icon: "🍽️", bg: "#f7e2d8", color: "#ce6a4a" },
+  sortir:   { label: "Sortir",  icon: "🍸", bg: "#f5dce6", color: "#c14f7c" },
+  culture:  { label: "Culture",  icon: "🎭", bg: "#f3e7f4", color: "#8e5fa8" },
+  outdoor:  { label: "Nature",   icon: "🌳", bg: "#e9efe2", color: "#5e7c52" },
+  sport:    { label: "Sport",    icon: "🏅", bg: "#eaf1f5", color: "#4a83a8" },
+  other:    { label: "Lieu",     icon: "📍", bg: "#f4eada", color: "#6b5c4e" },
 };
 
 const AMENITY_LABEL = {
   restaurant: "Restaurant", cafe: "Café", bar: "Bar", fast_food: "Fast-food",
   pub: "Pub", ice_cream: "Glacier", biergarten: "Biergarten", food_court: "Cafétéria",
+  nightclub: "Boîte de nuit",
   bakery: "Boulangerie", pastry: "Pâtisserie",
   park: "Parc", garden: "Jardin", playground: "Aire de jeux", viewpoint: "Point de vue",
   sports_centre: "Centre sportif", fitness_centre: "Salle de fitness", stadium: "Stade",
@@ -30,6 +34,10 @@ const AMENITY_LABEL = {
 };
 
 /* ---------- data loading ---------- */
+let PHOTOS = {};
+async function loadPhotos() {
+  try { PHOTOS = await (await fetch("data/photos.json")).json(); } catch (e) { PHOTOS = {}; }
+}
 async function loadPlaces() {
   try {
     const r = await fetch("data/places.json");
@@ -120,7 +128,7 @@ function go(view) {
 
 function render() {
   const v = document.getElementById("view");
-  const views = { feed: viewFeed, challenges: viewChallenges, map: viewMap, badges: viewBadges };
+  const views = { feed: viewFeed, challenges: viewChallenges, map: viewMap, badges: viewBadges, profile: viewProfile };
   v.innerHTML = views[state.view]();
   if (state.view === "map") initMap();
 }
@@ -128,15 +136,15 @@ function render() {
 /* ---------- fil ---------- */
 function viewFeed() {
   const cats = [
-    ["all", "Tout"], ["food", "🍽️ Food"], ["culture", "🎭 Culture"],
-    ["outdoor", "🌳 Nature"], ["sport", "🏅 Sport"],
+    ["all", "Tout"], ["food", "🍽️ Food"], ["sortir", "🍸 Sortir"],
+    ["culture", "🎭 Culture"], ["outdoor", "🌳 Nature"], ["sport", "🏅 Sport"],
   ];
   const chips = cats.map(([k, l]) =>
     `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setFilter('${k}')">${l}</button>`).join("");
 
-  let posts = DEMO_POSTS;
+  let posts = state.allPosts || DEMO_POSTS;
   if (state.filter !== "all") {
-    posts = DEMO_POSTS.filter((post) => {
+    posts = (state.allPosts || DEMO_POSTS).filter((post) => {
       const place = PLACES.find((p) => p.name === post.place);
       return place && place.cat === state.filter;
     });
@@ -154,7 +162,7 @@ function viewFeed() {
     return `
     <article class="post">
       <div class="post-img" style="background:${info.bg}" onclick="openPlace('${place ? place.id : ""}')">
-        <span>${info.icon}</span>
+        ${p._photoURL ? `<img src="${p._photoURL}" alt="">` : place && PHOTOS[place.id] ? `<img src="${PHOTOS[place.id]}" alt="${esc(place.name)}" loading="lazy">` : `<span>${info.icon}</span>`}
         <span class="cat-tag">${info.label}</span>
         ${price ? `<span class="price-tag">${price}</span>` : ""}
       </div>
@@ -162,7 +170,7 @@ function viewFeed() {
         <div class="post-user">
           <div class="u-av">${p.emoji}</div>
           <div>
-            <div class="u-name">${esc(p.user)}</div>
+            <div class="u-name">${esc(p.user)}${p.mine ? ' <span class="mine-flag">toi</span>' : ""}</div>
             <div class="u-meta">${esc(p.meta)}</div>
           </div>
         </div>
@@ -187,7 +195,7 @@ function viewFeed() {
     <div class="view-head"><h1>Le fil de Lyon</h1><p>Les bons plans partagés par la communauté</p></div>
     <div class="chips">${chips}</div>
     ${cards || `<div class="empty">Pas encore de post dans cette catégorie 🌱</div>`}
-    <button class="fab" onclick="toast('Création de post — bientôt !')" aria-label="Créer">＋</button>`;
+    <button class="fab" onclick="openCreatePost()" aria-label="Créer">＋</button>`;
 }
 
 function setFilter(f) { state.filter = f; render(); }
@@ -292,16 +300,45 @@ function viewBadges() {
 
 /* ---------- carte ---------- */
 let mapObj = null;
+const NEIGHBORHOODS = [
+  ["Tout Lyon", null],
+  ["Presqu'île", [45.7676, 4.8342]],
+  ["Vieux Lyon", [45.7622, 4.8270]],
+  ["Croix-Rousse", [45.7772, 4.8301]],
+  ["Part-Dieu", [45.7600, 4.8540]],
+  ["Confluence", [45.7420, 4.8180]],
+  ["Tête d'Or", [45.7770, 4.8530]],
+  ["Gerland", [45.7300, 4.8320]],
+  ["Villeurbanne", [45.7719, 4.8900]],
+  ["Bron", [45.7333, 4.9667]],
+  ["Vaise", [45.7800, 4.8030]],
+  ["Fourvière", [45.7620, 4.8220]],
+];
 
 function viewMap() {
+  const counts = {};
+  PLACES.forEach((p) => counts[p.cat] = (counts[p.cat] || 0) + 1);
   return `
-    <div class="view-head"><h1>Carte</h1><p>${PLACES.length.toLocaleString("fr-FR")} lieux autour de toi</p></div>
+    <div class="view-head"><h1>Carte</h1><p>${PLACES.length.toLocaleString("fr-FR")} lieux à Lyon et alentours</p></div>
+    <div class="search-box">
+      <select id="map-hood" onchange="setMapHood(this.value)">
+        ${NEIGHBORHOODS.map(([n, c]) => `<option value="${n}" ${state.hood === n ? "selected" : ""}>${n}</option>`).join("")}
+      </select>
+    </div>
     <div class="chips" id="map-chips">
-      ${Object.entries(CAT_INFO).slice(0, 4).map(([k, v]) =>
-        `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setMapFilter('${k}')">${v.icon} ${v.label}</button>`).join("")}
+      <button class="chip ${state.filter === "all" ? "active" : ""}" onclick="setMapFilter('all')">✨ Tout</button>
+      ${["food", "sortir", "culture", "outdoor", "sport"].map((k) =>
+        `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setMapFilter('${k}')">${CAT_INFO[k].icon} ${CAT_INFO[k].label} · ${counts[k] || 0}</button>`).join("")}
     </div>
     <div id="map-frame"></div>
-    <p class="map-hint">Astuce : tape sur une épingle pour ouvrir la fiche du lieu</p>`;
+    <button class="locate-btn" onclick="locateMe()">📍 Autour de moi</button>
+    <p class="map-hint">Tape une épingle pour ouvrir la fiche du lieu</p>`;
+}
+
+function setMapHood(n) {
+  state.hood = n;
+  const c = NEIGHBORHOODS.find(([name]) => name === n)[1];
+  if (c && mapObj) mapObj.flyTo(c, 14, { duration: 0.8 });
 }
 
 function setMapFilter(k) {
@@ -310,15 +347,48 @@ function setMapFilter(k) {
 }
 
 function ensureLeaflet(cb) {
-  if (typeof L !== "undefined") { cb(); return; }
-  const css = document.createElement("link");
-  css.rel = "stylesheet";
-  css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-  document.head.appendChild(css);
-  const s = document.createElement("script");
-  s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-  s.onload = cb;
-  document.body.appendChild(s);
+  if (typeof L !== "undefined" && typeof L.MarkerClusterGroup !== "undefined") { cb(); return; }
+  if (typeof L === "undefined") {
+    const css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(css);
+    const s = document.createElement("script");
+    s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    s.onload = () => ensureLeaflet(cb);
+    document.body.appendChild(s);
+    return;
+  }
+  const css2 = document.createElement("link");
+  css2.rel = "stylesheet";
+  css2.href = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css";
+  document.head.appendChild(css2);
+  const css3 = document.createElement("link");
+  css3.rel = "stylesheet";
+  css3.href = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css";
+  document.head.appendChild(css3);
+  const s2 = document.createElement("script");
+  s2.src = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js";
+  s2.onload = cb;
+  document.body.appendChild(s2);
+}
+
+function locateMe() {
+  if (!navigator.geolocation) { toast("GPS non disponible sur cet appareil"); return; }
+  toast("Recherche de ta position…");
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const { latitude: lat, longitude: lon } = pos.coords;
+    if (mapObj) {
+      mapObj.flyTo([lat, lon], 16, { duration: 1 });
+      if (state.userMarker) mapObj.removeLayer(state.userMarker);
+      state.userMarker = L.circleMarker([lat, lon], {
+        radius: 9, color: "#fff", weight: 3, fillColor: "#4a83a8", fillOpacity: 1,
+      }).addTo(mapObj);
+      const nearest = PLACES.slice().sort((a, b) =>
+        (Math.hypot(a.lat - lat, a.lon - lon)) - (Math.hypot(b.lat - lat, b.lon - lon)))[0];
+      if (nearest) toast(`Le plus proche : ${nearest.name}`);
+    }
+  }, () => toast("Position refusée — autorise la localisation dans Safari"), { enableHighAccuracy: true, timeout: 8000 });
 }
 
 function initMap() {
@@ -328,38 +398,51 @@ function initMap() {
   ensureLeaflet(() => buildMap(frame));
 }
 
+function pinIcon(cat) {
+  const info = CAT_INFO[cat] || CAT_INFO.other;
+  const svg = "data:image/svg+xml," + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="42" viewBox="0 0 34 42">` +
+    `<path d="M17 1C8.7 1 2 7.7 2 16c0 11 15 24 15 24s15-13 15-24C32 7.7 25.3 1 17 1z" fill="${info.color}" stroke="#fff" stroke-width="2"/>` +
+    `<text x="17" y="21.5" font-size="12" text-anchor="middle" dominant-baseline="middle">${info.icon}</text></svg>`);
+  return L.icon({ iconUrl: svg, iconSize: [34, 42], iconAnchor: [17, 42], popupAnchor: [0, -36] });
+}
+
 function buildMap(frame) {
   if (mapObj) { mapObj.remove(); mapObj = null; }
   frame.innerHTML = "";
 
-  mapObj = L.map(frame, { zoomControl: false }).setView([45.7578, 4.8320], 13);
+  mapObj = L.map(frame, { zoomControl: false }).setView([45.7578, 4.8320], 12);
   L.control.zoom({ position: "bottomright" }).addTo(mapObj);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "© OpenStreetMap",
+    className: "map-tint",
   }).addTo(mapObj);
 
-  const colors = { food: "#ce6a4a", culture: "#8e5fa8", outdoor: "#5e7c52", sport: "#4a83a8", other: "#6b5c4e" };
-  const svg = (c) => "data:image/svg+xml," + encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 26 34">` +
-    `<path d="M13 0C5.8 0 0 5.8 0 13c0 9 13 21 13 21s13-12 13-21C26 5.8 20.2 0 13 0z" fill="${c}" stroke="#fff" stroke-width="1.5"/>` +
-    `<circle cx="13" cy="13" r="4.5" fill="#fff"/></svg>`);
   const icons = {};
-  Object.keys(colors).forEach((k) => {
-    icons[k] = L.icon({ iconUrl: svg(colors[k]), iconSize: [26, 34], iconAnchor: [13, 34], popupAnchor: [0, -32] });
-  });
+  Object.keys(CAT_INFO).forEach((k) => icons[k] = pinIcon(k));
 
   const places = state.filter !== "all" ? PLACES.filter((p) => p.cat === state.filter) : PLACES;
-  const group = [];
-  places.slice(0, 800).forEach((p) => {
-    const m = L.marker([p.lat, p.lon], { icon: icons[p.cat] || icons.other });
-    m.bindPopup(
-      `<b>${esc(p.name)}</b><br>` +
-      `<span style="color:#8a7a68;font-size:.8em">${esc(AMENITY_LABEL[p.amenity] || "")}</span><br>` +
-      `<a href="#" onclick="event.preventDefault(); if(mapObj) mapObj.closePopup(); openPlace('${p.id}')" style="color:#ce6a4a;font-weight:700">Voir la fiche ›</a>`);
-    group.push(m);
+  const cluster = L.markerClusterGroup({
+    maxClusterRadius: 45,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    iconCreateFunction: (c) => {
+      const n = c.getChildCount();
+      const size = n < 50 ? 42 : n < 300 ? 52 : 62;
+      return L.divIcon({
+        html: `<div class="cluster-bubble" style="width:${size}px;height:${size}px;font-size:${size < 50 ? .8 : .95}rem">${n}</div>`,
+        className: "cluster-wrap",
+        iconSize: [size, size],
+      });
+    },
   });
-  L.layerGroup(group).addTo(mapObj);
+  places.forEach((p) => {
+    const m = L.marker([p.lat, p.lon], { icon: icons[p.cat] || icons.other });
+    m.on("click", () => openPlace(p.id));
+    cluster.addLayer(m);
+  });
+  mapObj.addLayer(cluster);
   setTimeout(() => mapObj.invalidateSize(), 150);
 }
 
@@ -388,7 +471,9 @@ function openPlace(id) {
 
   openSheet(`
     <div class="sheet-grab"></div>
-    <div class="sheet-hero" style="background:${info.bg}">${info.icon}</div>
+    ${PHOTOS[p.id]
+      ? `<div class="sheet-hero photo"><img src="${PHOTOS[p.id]}" alt="${esc(p.name)}"></div>`
+      : `<div class="sheet-hero" style="background:${info.bg}">${info.icon}</div>`}
     <div class="sheet-body">
       <div class="s-cat">${esc(amenity)}${price ? ` · ${price}` : ""}</div>
       <h2>${esc(p.name)}</h2>
@@ -508,13 +593,151 @@ function toast(msg) {
 /* ---------- profil (avatar) ---------- */
 document.querySelector(".avatar")?.addEventListener("click", (e) => {
   e.stopPropagation();
-  toast("Profil — bientôt !");
+  go("profile");
 });
 
+/* ---------- storage (autonome: données dans le navigateur) ---------- */
+const DB_NAME = "so-lyon-db";
+function idb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains("photos")) db.createObjectStore("photos");
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function savePhoto(id, blob) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction("photos", "readwrite");
+    tx.objectStore("photos").put(blob, id);
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+}
+async function loadPhoto(id) {
+  const db = await idb();
+  return new Promise((res) => {
+    const tx = db.transaction("photos", "readonly");
+    const rq = tx.objectStore("photos").get(id);
+    rq.onsuccess = () => res(rq.result || null);
+    rq.onerror = () => res(null);
+  });
+}
+
+let USER_POSTS = [];
+try {
+  const saved = JSON.parse(localStorage.getItem("so-lyon-posts"));
+  if (Array.isArray(saved)) USER_POSTS = saved;
+} catch (e) {}
+function saveUserPosts() {
+  try { localStorage.setItem("so-lyon-posts", JSON.stringify(USER_POSTS)); } catch (e) {}
+}
+
+/* ---------- création de post ---------- */
+let newPostPhoto = null;
+let newPostPhotoURL = null;
+let selectedPlaceId = null;
+
+function openCreatePost() {
+  openSheet(`
+    <div class="sheet-grab"></div>
+    <div class="sheet-body" style="padding-bottom:20px">
+      <h2 style="font-size:1.2rem">Nouveau post 📸</h2>
+      <p style="color:var(--ink-faint);font-size:.85rem;margin-top:3px">Partage ton bon plan avec la communauté</p>
+
+      <label class="photo-picker" id="photo-picker">
+        <input type="file" accept="image/*" id="post-photo-input" style="display:none" onchange="onPostPhoto(this)">
+        <span id="photo-picker-label">📷 Ajouter une photo</span>
+      </label>
+      <img id="photo-preview" class="photo-preview" style="display:none">
+
+      <div class="field" style="margin-top:12px">
+        <label>Lieu</label>
+        <input id="post-place-input" placeholder="Rechercher un lieu…" oninput="searchPostPlace(this.value)">
+        <div id="post-place-results"></div>
+      </div>
+      <div class="field">
+        <label>Ton texte</label>
+        <textarea id="post-text" placeholder="Pourquoi ce lieu est top ?"></textarea>
+      </div>
+      <button class="scta primary" style="width:100%" onclick="submitPost()">Publier</button>
+    </div>`);
+}
+
+function onPostPhoto(input) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  if (newPostPhotoURL) URL.revokeObjectURL(newPostPhotoURL);
+  newPostPhoto = f;
+  newPostPhotoURL = URL.createObjectURL(f);
+  const img = document.getElementById("photo-preview");
+  img.src = newPostPhotoURL;
+  img.style.display = "block";
+  document.getElementById("photo-picker-label").textContent = "✓ Photo ajoutée";
+}
+
+function searchPostPlace(q) {
+  const box = document.getElementById("post-place-results");
+  q = q.trim().toLowerCase();
+  selectedPlaceId = null;
+  if (q.length < 2) { box.innerHTML = ""; return; }
+  const res = PLACES.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 8);
+  box.innerHTML = res.map((p) => `
+    <div class="place-pick" onclick="pickPostPlace('${p.id}')">
+      <span>${CAT_INFO[p.cat] ? CAT_INFO[p.cat].icon : "📍"}</span>
+      <div>
+        <div style="font-weight:700;font-size:.9rem">${esc(p.name)}</div>
+        <div style="font-size:.75rem;color:var(--ink-faint)">${esc(p.street || AMENITY_LABEL[p.amenity] || "")}</div>
+      </div>
+    </div>`).join("");
+}
+
+function pickPostPlace(id) {
+  const p = placeById(id);
+  if (!p) return;
+  selectedPlaceId = id;
+  document.getElementById("post-place-input").value = p.name;
+  document.getElementById("post-place-results").innerHTML = "";
+}
+
+async function submitPost() {
+  const text = (document.getElementById("post-text").value || "").trim();
+  if (!selectedPlaceId && !text) { toast("Ajoute un lieu ou un texte 😉"); return; }
+  const id = "up" + Date.now();
+  const post = {
+    id, user: "Toi", emoji: "🦁", meta: "à l'instant",
+    text, place: selectedPlaceId ? placeById(selectedPlaceId).name : "",
+    likes: 0, comments: 0, tags: [], mine: true,
+  };
+  if (newPostPhoto) {
+    try { await savePhoto(id, newPostPhoto); post.hasPhoto = true; } catch (e) {}
+  }
+  USER_POSTS.unshift(post);
+  saveUserPosts();
+  if (newPostPhotoURL) URL.revokeObjectURL(newPostPhotoURL);
+  newPostPhoto = null; newPostPhotoURL = null; selectedPlaceId = null;
+  closeSheet();
+  state.view = "feed";
+  render();
+  toast("Post publié ! 🎉");
+}
+
+function hydrateUserPosts() {
+  return Promise.all(USER_POSTS.map(async (p) => {
+    if (p.hasPhoto && !p._photoURL) {
+      const blob = await loadPhoto(p.id);
+      if (blob) p._photoURL = URL.createObjectURL(blob);
+    }
+    return p;
+  }));
+}
+
 /* ---------- boot ---------- */
-loadPlaces().then(() => {
+Promise.all([loadPhotos(), loadPlaces()]).then(async () => {
   if (PLACES.length) {
-    // link demo posts to real places by name (fuzzy)
     DEMO_POSTS.forEach((post) => {
       if (!PLACES.find((p) => p.name === post.place)) {
         const fuzzy = PLACES.find((p) => p.name.toLowerCase().includes(post.place.toLowerCase().slice(0, 6)));
@@ -522,6 +745,134 @@ loadPlaces().then(() => {
       }
     });
   }
+  state.allPosts = [...USER_POSTS, ...DEMO_POSTS];
+  await hydrateUserPosts();
   render();
 });
 render();
+
+
+/* ---------- profil ---------- */
+const PROFILE = {
+  name: "Toi",
+  handle: "@moi.lyon",
+  bio: "Chasseuse de bons plans à Lyon 🦁 | food · culture · sport",
+  followers: 142,
+  following: 89,
+  points: 1240,
+};
+
+let TODO_IDEAS = [
+  { id: "t1", txt: "Brunch au Café Mokxa", done: false, pub: true },
+  { id: "t2", txt: "Voir la fresque des Lyonnais", done: false, pub: true },
+  { id: "t3", txt: "Pique-nique au Parc Blandan", done: false, pub: false },
+  { id: "t4", txt: "Manger chez Daniel et Denise", done: false, pub: false },
+  { id: "t5", txt: "Cours de climb à Crêpeloup", done: true, pub: true },
+];
+try {
+  const saved = JSON.parse(localStorage.getItem("so-lyon-todos"));
+  if (Array.isArray(saved) && saved.length) TODO_IDEAS = saved;
+} catch (e) {}
+function saveTodos() {
+  try { localStorage.setItem("so-lyon-todos", JSON.stringify(TODO_IDEAS)); } catch (e) {}
+}
+let todoView = "all";
+
+const WEEK_ACTIVITY = [3, 1, 4, 2, 5, 2, 6];
+
+function viewProfile() {
+  const photoPosts = DEMO_POSTS.filter((p) => {
+    const pl = PLACES.find((x) => x.name === p.place);
+    return pl && PHOTOS[pl.id];
+  });
+  const gridHTML = photoPosts.map((p) => {
+    const pl = PLACES.find((x) => x.name === p.place);
+    return `<div class="grid-cell" onclick="openPlace('${pl.id}')" style="background:${CAT_INFO[pl.cat].bg}">
+      <img src="${PHOTOS[pl.id]}" loading="lazy" alt="${esc(pl.name)}">
+    </div>`;
+  }).join("");
+
+  const max = Math.max(...WEEK_ACTIVITY);
+  const bars = WEEK_ACTIVITY.map((v, i) => {
+    const days = ["L", "M", "M", "J", "V", "S", "D"];
+    return `<div class="bar-col"><div class="bar" style="height:${(v / max) * 100}%"><span class="bar-v">${v}</span></div><span class="bar-d">${days[i]}</span></div>`;
+  }).join("");
+
+  const shown = TODO_IDEAS.filter((t) => todoView === "all" || (todoView === "pub" ? t.pub : !t.pub));
+  const todoHTML = shown.map((t) => `
+    <div class="todo-row ${t.pub ? "" : "private"}" onclick="toggleTodo('${t.id}')">
+      <span class="todo-check ${t.done ? "done" : ""}">${t.done ? "✓" : ""}</span>
+      <span class="todo-txt ${t.done ? "done" : ""}">${esc(t.txt)}</span>
+      <span class="todo-del" onclick="event.stopPropagation(); delTodo('${t.id}')">✕</span>
+      ${t.pub ? "" : `<span class="todo-dot" title="Privé"></span>`}
+    </div>`).join("");
+
+  return `
+    <div class="profile-head">
+      <div class="p-avatar">🦁</div>
+      <div class="p-stats">
+        <div><b>${PROFILE.points}</b><span>points</span></div>
+        <div><b>${PROFILE.followers}</b><span>followers</span></div>
+        <div><b>${PROFILE.following}</b><span>suivis</span></div>
+      </div>
+    </div>
+    <div class="p-name">${esc(PROFILE.name)} <span>${esc(PROFILE.handle)}</span></div>
+    <div class="p-bio">${esc(PROFILE.bio)}</div>
+    <div class="p-cta-row">
+      <button class="scta primary" style="flex:1" onclick="toast('Edition du profil — avec les comptes réels 😉')">Modifier le profil</button>
+    </div>
+
+    <div class="section-title"><h2>Ma to-do list</h2><span style="font-size:.8rem;color:var(--ink-faint)">${TODO_IDEAS.filter(t=>!t.done).length} en attente</span></div>
+    <div class="chips">
+      <button class="chip ${todoView === "all" ? "active" : ""}" onclick="setTodoView('all')">Toutes</button>
+      <button class="chip ${todoView === "pub" ? "active" : ""}" onclick="setTodoView('pub')">Pour tous</button>
+      <button class="chip ${todoView === "priv" ? "active" : ""}" onclick="setTodoView('priv')">Privées</button>
+    </div>
+    <div class="todo">${todoHTML || '<div class="empty" style="padding:18px">Rien ici — ajoute une idée !</div>'}</div>
+    <div class="todo-add">
+      <input id="todo-input" placeholder="Ex : brunch chez Mokxa…" onkeydown="if(event.key==='Enter')addTodo()">
+      <div class="todo-vis-toggle">
+        <button class="chip ${todoAddPub ? "active" : ""}" onclick="todoAddPub=true;renderTodoOnly()">Pour tous</button>
+        <button class="chip ${!todoAddPub ? "active" : ""}" onclick="todoAddPub=false;renderTodoOnly()">Privé</button>
+      </div>
+      <button class="todo-add-btn" onclick="addTodo()">＋</button>
+    </div>
+
+    <div class="section-title"><h2>Ma semaine</h2><span style="font-size:.8rem;color:var(--ink-faint)">${WEEK_ACTIVITY.reduce((a,b)=>a+b,0)} activités</span></div>
+    <div class="chart">${bars}</div>
+
+    <div class="section-title"><h2>Mes posts</h2></div>
+    <div class="profile-grid">${gridHTML || '<div class="empty">Tes posts photo apparaîtront ici</div>'}</div>`;
+}
+
+let todoAddPub = true;
+
+function toggleTodo(id) {
+  const t = TODO_IDEAS.find((x) => x.id === id);
+  t.done = !t.done;
+  saveTodos();
+  render();
+}
+
+function delTodo(id) {
+  TODO_IDEAS = TODO_IDEAS.filter((x) => x.id !== id);
+  saveTodos();
+  render();
+}
+
+function addTodo() {
+  const inp = document.getElementById("todo-input");
+  const txt = (inp.value || "").trim();
+  if (!txt) { toast("Écris d'abord ton idée 😉"); return; }
+  TODO_IDEAS.unshift({ id: "t" + Date.now(), txt, done: false, pub: todoAddPub });
+  saveTodos();
+  render();
+  toast(todoAddPub ? "Idée publique ajoutée" : "Idée privée ajoutée");
+}
+
+function setTodoView(v) {
+  todoView = v;
+  render();
+}
+
+function renderTodoOnly() { render(); }

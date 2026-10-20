@@ -281,3 +281,125 @@ main { padding: 16px 16px calc(84px + var(--safe-bottom)); }
 .leaflet-control-zoom { border: none !important; box-shadow: 0 2px 10px rgba(90,60,40,.18) !important; }
 .leaflet-control-zoom a { border-radius: 10px !important; color: #2b2118 !important; }
 .leaflet-container a.leaflet-popup-close-button { color: #a29484 !important; }
+
+.locate-btn {
+  width: 100%; padding: 12px; margin-top: 10px; border-radius: 14px; border: none;
+  background: var(--ink); color: var(--cream); font-weight: 750; font-size: .92rem; cursor: pointer;
+}
+.locate-btn:active { transform: scale(.98); }
+
+/* ============ Photos réelles ============ */
+.post-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sheet-hero.photo { padding: 0; overflow: hidden; }
+.sheet-hero.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ============ Profil (insta/strava) ============ */
+.profile-head { display: flex; align-items: center; gap: 20px; padding: 6px 2px 0; }
+.p-avatar {
+  width: 78px; height: 78px; border-radius: 50%; background: var(--terra-soft);
+  display: flex; align-items: center; justify-content: center; font-size: 2.5rem; flex-shrink: 0;
+  border: 3px solid var(--card); box-shadow: var(--shadow);
+}
+.p-stats { display: flex; gap: 22px; flex: 1; }
+.p-stats > div { text-align: center; }
+.p-stats b { display: block; font-size: 1.15rem; font-weight: 800; letter-spacing: -.02em; }
+.p-stats span { font-size: .74rem; color: var(--ink-faint); font-weight: 600; }
+.p-name { font-size: 1.1rem; font-weight: 800; margin-top: 12px; }
+.p-name span { color: var(--ink-faint); font-weight: 500; font-size: .85rem; margin-left: 6px; }
+.p-bio { color: var(--ink-soft); font-size: .88rem; margin-top: 3px; }
+.p-cta-row { margin-top: 14px; }
+
+/* to-do list */
+.todo { background: var(--card); border-radius: 16px; padding: 6px 14px; box-shadow: var(--shadow); border: 1px solid rgba(238,226,210,.6); }
+.todo-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.todo-row:last-child { border-bottom: none; }
+.todo-check {
+  width: 24px; height: 24px; border-radius: 8px; border: 2px solid var(--line); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: .8rem; color: #fff;
+  transition: all .15s;
+}
+.todo-check.done { background: var(--olive); border-color: var(--olive); }
+.todo-txt { font-size: .92rem; font-weight: 600; }
+.todo-txt.done { text-decoration: line-through; color: var(--ink-faint); }
+
+/* bar chart */
+.chart {
+  display: flex; align-items: flex-end; gap: 10px; height: 130px;
+  background: var(--card); border-radius: 16px; padding: 16px 18px 10px;
+  box-shadow: var(--shadow); border: 1px solid rgba(238,226,210,.6);
+}
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; gap: 4px; }
+.bar {
+  width: 100%; max-width: 30px; border-radius: 8px 8px 3px 3px; position: relative;
+  background: linear-gradient(180deg, var(--terra), var(--gold));
+  min-height: 10px;
+}
+.bar-v { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: .66rem; font-weight: 700; color: var(--ink-faint); }
+.bar-d { font-size: .68rem; font-weight: 700; color: var(--ink-faint); }
+
+/* profile grid (pinterest) */
+.profile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.grid-cell { aspect-ratio: 1; overflow: hidden; border-radius: 10px; cursor: pointer; }
+.grid-cell img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s; }
+.grid-cell:active img { transform: scale(1.06); }
+
+/* ============ Carte v3 ============ */
+.map-tint { filter: saturate(.55) sepia(.22) hue-rotate(-12deg) brightness(1.06); }
+.cluster-bubble {
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, rgba(206,106,74,.95), rgba(217,164,74,.9));
+  color: #fff; font-weight: 800; border: 3px solid #fff; border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(90,60,40,.3);
+}
+.search-box select {
+  flex: 1; padding: 12px 15px; border-radius: 14px; border: 1.5px solid var(--line);
+  background: var(--card); font-size: .95rem; color: var(--ink); outline: none;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b5c4e' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 15px center;
+}
+#map-frame { height: calc(100vh - 320px); min-height: 340px; }
+
+/* ============ To-do add form ============ */
+.todo-add { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+.todo-add input {
+  flex: 1; padding: 12px 14px; border-radius: 13px; border: 1.5px solid var(--line);
+  background: var(--card); font-size: .9rem; outline: none; color: var(--ink); min-width: 0;
+}
+.todo-add input:focus { border-color: var(--terra); }
+.todo-vis-toggle { display: flex; gap: 5px; }
+.todo-vis-toggle .chip { padding: 9px 11px; }
+.todo-add-btn {
+  width: 44px; height: 44px; border-radius: 13px; border: none; flex-shrink: 0;
+  background: var(--terra); color: #fff; font-size: 1.3rem; font-weight: 600; cursor: pointer;
+}
+.todo-vis { font-size: .85rem; }
+.todo-del { font-size: .8rem; color: var(--ink-faint); padding: 4px; }
+
+/* to-do: private marker = discreet dot */
+.todo-row.private .todo-txt { color: var(--ink-soft); }
+.todo-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--gold);
+  flex-shrink: 0; margin-left: 2px;
+}
+.todo-del { order: 2; }
+.todo-dot { order: 3; }
+
+/* ============ Création de post ============ */
+.photo-picker {
+  display: flex; align-items: center; justify-content: center;
+  border: 2px dashed var(--terra); border-radius: 14px;
+  padding: 26px; margin-top: 14px; color: var(--terra); font-weight: 700;
+  font-size: .95rem; cursor: pointer; background: var(--terra-soft);
+}
+.photo-preview { width: 100%; border-radius: 14px; margin-top: 10px; display: block; }
+.place-pick {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: var(--cream-2); border-radius: 12px; margin-top: 6px; cursor: pointer;
+}
+.place-pick:hover, .place-pick:active { background: var(--terra-soft); }
+.mine-flag {
+  font-size: .62rem; font-weight: 800; color: var(--olive);
+  background: var(--olive-soft); border-radius: 999px; padding: 2px 8px;
+  vertical-align: middle; margin-left: 4px;
+}
