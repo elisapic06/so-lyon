@@ -717,16 +717,17 @@ async function submitPost() {
   }
   USER_POSTS.unshift(post);
   saveUserPosts();
-  if (newPostPhotoURL) URL.revokeObjectURL(newPostPhotoURL);
-  newPostPhoto = null; newPostPhotoURL = null; selectedPlaceId = null;
+  if (newPostPhotoURL) { post._photoURL = newPostPhotoURL; newPostPhotoURL = null; }
+  newPostPhoto = null; selectedPlaceId = null;
   closeSheet();
   state.view = "feed";
+  state.allPosts = [...USER_POSTS, ...DEMO_POSTS];
   render();
   toast("Post publié ! 🎉");
 }
 
-function hydrateUserPosts() {
-  return Promise.all(USER_POSTS.map(async (p) => {
+function hydrateUserPosts(list) {
+  return Promise.all(list.map(async (p) => {
     if (p.hasPhoto && !p._photoURL) {
       const blob = await loadPhoto(p.id);
       if (blob) p._photoURL = URL.createObjectURL(blob);
@@ -746,7 +747,7 @@ Promise.all([loadPhotos(), loadPlaces()]).then(async () => {
     });
   }
   state.allPosts = [...USER_POSTS, ...DEMO_POSTS];
-  await hydrateUserPosts();
+  await hydrateUserPosts(state.allPosts);
   render();
 });
 render();
