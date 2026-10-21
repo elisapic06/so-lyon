@@ -921,7 +921,7 @@ function viewUserProfile() {
   return `
     <div class="up-head">
       <button class="up-back" onclick="go('feed')">‹</button>
-      <div class="up-handle">@${esc(viewedProfile.handle)}</div>
+      <div class="up-handle">@${esc(viewedProfile.handle)}${viewedProfile.account_type === "pro" ? ' <span class="pro-flag">PRO</span>' : ""}</div>
     </div>
     <div class="profile-head">
       <div class="p-avatar">${viewedProfile.avatar_emoji || "🦁"}</div>
@@ -933,6 +933,10 @@ function viewUserProfile() {
     </div>
     <div class="p-name">${esc(viewedProfile.display_name)}</div>
     <div class="p-bio">${esc(viewedProfile.bio || "")}</div>
+    ${viewedProfile.account_type === "pro" && viewedProfile.claimed_place_id ? `
+    <div class="pro-place-link" onclick="openPlace('${viewedProfile.claimed_place_id}')">
+      📍 Voir l'établissement
+    </div>` : ""}
     <div class="p-cta-row">
       <button class="scta ${amFollowing ? "" : "primary"}" style="flex:1" onclick="toggleFollow()">
         ${amFollowing ? "✓ Suivi" : "+ Suivre"}

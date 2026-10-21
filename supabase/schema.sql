@@ -11,6 +11,8 @@ create table if not exists public.profiles (
   bio text default '',
   avatar_emoji text default '🦁',
   points integer default 0,
+  account_type text not null default 'particulier',  -- 'particulier' | 'pro'
+  claimed_place_id text default '',                  -- id OSM du lieu revendiqué (comptes pro)
   created_at timestamptz default now()
 );
 
@@ -120,11 +122,13 @@ create policy "upload photo" on storage.objects for insert
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, handle, display_name)
+  insert into public.profiles (id, handle, display_name, account_type, claimed_place_id)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'handle', 'lion_' || substr(new.id::text, 1, 6)),
-    coalesce(new.raw_user_meta_data->>'display_name', 'Nouveau lion')
+    coalesce(new.raw_user_meta_data->>'display_name', 'Nouveau lion'),
+    coalesce(new.raw_user_meta_data->>'account_type', 'particulier'),
+    coalesce(new.raw_user_meta_data->>'claimed_place_id', '')
   );
   return new;
 end $$;

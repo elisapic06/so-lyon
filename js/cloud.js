@@ -50,10 +50,17 @@ async function loadCloudProfile(user) {
 
 /* ---------- inscription / connexion / déconnexion ---------- */
 
-async function signUp(email, password, handle, displayName) {
+async function signUp(email, password, handle, displayName, accountType, claimedPlaceId) {
   const { data, error } = await CLOUD.supabase.auth.signUp({
     email, password,
-    options: { data: { handle, display_name: displayName } },
+    options: {
+      data: {
+        handle,
+        display_name: displayName,
+        account_type: accountType || "particulier",
+        claimed_place_id: claimedPlaceId || "",
+      },
+    },
   });
   if (error) throw error;
   return data;
@@ -104,7 +111,7 @@ async function fetchCloudPosts(limit = 50) {
     .from("posts")
     .select(`
       id, text, place_id, place_name, photo_url, likes, created_at,
-      author, profiles!posts_author_fkey (handle, display_name, avatar_emoji)
+      author, profiles!posts_author_fkey (handle, display_name, avatar_emoji, account_type, claimed_place_id)
     `)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -122,6 +129,8 @@ async function fetchCloudPosts(limit = 50) {
     comments: 0,
     mine: CLOUD.user && p.author === CLOUD.user.id,
     authorId: p.author,
+    authorType: p.profiles?.account_type || "particulier",
+    authorPlace: p.profiles?.claimed_place_id || "",
     cloud: true,
   }));
 }

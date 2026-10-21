@@ -454,3 +454,27 @@ main { padding: 16px 16px calc(84px + var(--safe-bottom)); }
 .cloud-flag {
   font-size: .6rem; color: #4a83a8; vertical-align: middle;
 }
+
+/* ============ Comptes pro ============ */
+.auth-type-tabs { display: flex; gap: 8px; margin: 18px 0 14px; }
+.auth-tab {
+  flex: 1; padding: 12px 8px; border-radius: 14px; border: 2px solid var(--line);
+  background: var(--card); font-weight: 700; font-size: .9rem; color: var(--ink-soft);
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.auth-tab.active { border-color: var(--terra); background: var(--terra-soft); color: var(--terra-deep); }
+.at-ic { font-size: 1.1rem; }
+.pro-note {
+  font-size: .82rem; color: var(--ink-soft); background: var(--cream-2);
+  border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; line-height: 1.45;
+}
+.pro-flag {
+  font-size: .58rem; font-weight: 800; color: #fff; letter-spacing: .04em;
+  background: var(--gold); border-radius: 5px; padding: 2px 6px; vertical-align: middle;
+  margin-left: 4px;
+}
+.pro-place-link {
+  margin-top: 12px; display: flex; align-items: center; gap: 8px;
+  background: var(--olive-soft); color: var(--olive); font-weight: 700; font-size: .88rem;
+  padding: 12px 14px; border-radius: 13px; cursor: pointer;
+}
