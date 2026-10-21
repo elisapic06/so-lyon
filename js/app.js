@@ -830,20 +830,66 @@ function finishOnboarding() {
 }
 
 /* ---------- auth (connexion / inscription) ---------- */
+let authMode = "particulier";
+let proPlaceId = null;
+
 function viewAuth() {
   return `
     <div class="auth-wrap">
       <div class="auth-logo">so<span>lyon</span></div>
       <p class="auth-tag">Les bons plans food &amp; sorties à Lyon,<br>partagés par ceux qui y vivent.</p>
+      <div class="auth-type-tabs">
+        <button class="auth-tab ${authMode === "particulier" ? "active" : ""}" onclick="setAuthMode('particulier')">
+          <span class="at-ic">🦁</span>Particulier
+        </button>
+        <button class="auth-tab ${authMode === "pro" ? "active" : ""}" onclick="setAuthMode('pro')">
+          <span class="at-ic">🏪</span>Professionnel
+        </button>
+      </div>
       <div class="auth-card">
-        <div class="field"><label>Email</label><input id="auth-email" type="email" placeholder="toi@mail.com"></div>
+        ${authMode === "pro" ? `
+        <p class="pro-note">Tu es un restaurant, un bar, un lieu qui accueille du monde ?<br>Revendique ta page pour publier tes actus et événements.</p>
+        <div class="field"><label>Ton établissement</label>
+          <input id="pro-place-input" placeholder="Rechercher ton lieu…" oninput="searchProPlace(this.value)">
+          <div id="pro-place-results"></div>
+        </div>` : ""}
+        <div class="field"><label>Email</label><input id="auth-email" type="email" placeholder="${authMode === "pro" ? "contact@ton-etablissement.fr" : "toi@mail.com"}"></div>
         <div class="field"><label>Mot de passe</label><input id="auth-pass" type="password" placeholder="6 caractères min."></div>
-        <div class="field"><label>Pseudo</label><input id="auth-handle" placeholder="ex: camille.lyon"></div>
-        <button class="scta primary" style="width:100%" onclick="doSignUp()">Créer mon compte</button>
+        <div class="field"><label>${authMode === "pro" ? "Pseudo de l'établissement" : "Pseudo"}</label><input id="auth-handle" placeholder="${authMode === "pro" ? "ex: brasserie-georges" : "ex: camille.lyon"}"></div>
+        <button class="scta primary" style="width:100%" onclick="doSignUp()">Créer mon compte ${authMode === "pro" ? "pro" : ""}</button>
         <button class="scta" style="width:100%;margin-top:8px" onclick="doSignIn()">J'ai déjà un compte</button>
       </div>
       <button class="auth-skip" onclick="state.view='feed'; render();">Continuer sans compte →</button>
     </div>`;
+}
+
+function setAuthMode(m) {
+  authMode = m;
+  render();
+}
+
+function searchProPlace(q) {
+  const box = document.getElementById("pro-place-results");
+  q = q.trim().toLowerCase();
+  proPlaceId = null;
+  if (q.length < 2) { box.innerHTML = ""; return; }
+  const res = PLACES.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 8);
+  box.innerHTML = res.map((p) => `
+    <div class="place-pick" onclick="pickProPlace('${p.id}')">
+      <span>${CAT_INFO[p.cat] ? CAT_INFO[p.cat].icon : "📍"}</span>
+      <div>
+        <div style="font-weight:700;font-size:.9rem">${esc(p.name)}</div>
+        <div style="font-size:.75rem;color:var(--ink-faint)">${esc(p.street || AMENITY_LABEL[p.amenity] || "")}</div>
+      </div>
+    </div>`).join("");
+}
+
+function pickProPlace(id) {
+  const p = placeById(id);
+  if (!p) return;
+  proPlaceId = id;
+  document.getElementById("pro-place-input").value = p.name;
+  document.getElementById("pro-place-results").innerHTML = "";
 }
 
 async function doSignUp() {
@@ -852,9 +898,10 @@ async function doSignUp() {
   const handle = document.getElementById("auth-handle").value.trim().toLowerCase().replace(/[^a-z0-9._]/g, "");
   if (!email || pass.length < 6 || !handle) { toast("Remplis tout (mot de passe : 6 caractères min.)"); return; }
   if (!CLOUD.enabled) { toast("Mode local — le cloud arrive bientôt 😉"); return; }
+  if (authMode === "pro" && !proPlaceId) { toast("Recherche et sélectionne ton établissement 🏪"); return; }
   try {
-    await signUp(email, pass, handle, handle);
-    toast("Compte créé ! Vérifie tes emails si demandé 📬");
+    await signUp(email, pass, handle, handle, authMode, proPlaceId);
+    toast("Compte " + (authMode === "pro" ? "pro " : "") + "créé ! Vérifie tes emails si demandé 📬");
     state.view = "feed"; render();
   } catch (e) { toast("Erreur : " + e.message); }
 }
