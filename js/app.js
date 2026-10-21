@@ -128,7 +128,7 @@ function go(view) {
 
 function render() {
   const v = document.getElementById("view");
-  const views = { feed: viewFeed, challenges: viewChallenges, map: viewMap, badges: viewBadges, profile: viewProfile, auth: viewAuth };
+  const views = { feed: viewFeed, challenges: viewChallenges, map: viewMap, badges: viewBadges, profile: viewProfile, auth: viewAuth, onboarding: viewOnboarding, userprofile: viewUserProfile };
   v.innerHTML = views[state.view]();
   if (state.view === "map") initMap();
 }
@@ -136,16 +136,27 @@ function render() {
 /* ---------- fil ---------- */
 function viewFeed() {
   const cats = [
-    ["all", "Tout"], ["food", "🍽️ Food"], ["sortir", "🍸 Sortir"],
+    ["all", "Tout"], ["mine", "✨ Mes envies"],
+    ["food", "🍽️ Food"], ["sortir", "🍸 Sortir"],
     ["culture", "🎭 Culture"], ["outdoor", "🌳 Nature"], ["sport", "🏅 Sport"],
   ];
   const chips = cats.map(([k, l]) =>
     `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setFilter('${k}')">${l}</button>`).join("");
 
   let posts = state.allPosts || DEMO_POSTS;
-  if (state.filter !== "all") {
-    posts = (state.allPosts || DEMO_POSTS).filter((post) => {
-      const place = PLACES.find((p) => p.name === post.place);
+  if (state.filter === "mine") {
+    // filtre "mes envies" basé sur les intérêts choisis à l'onboarding
+    posts = posts.filter((post) => {
+      let place = null;
+      if (post.placeId) place = placeById(post.placeId);
+      if (!place && post.place) place = PLACES.find((p) => p.name === post.place);
+      return place && myInterests.includes(place.cat);
+    });
+  } else if (state.filter !== "all") {
+    posts = posts.filter((post) => {
+      let place = null;
+      if (post.placeId) place = placeById(post.placeId);
+      if (!place && post.place) place = PLACES.find((p) => p.name === post.place);
       return place && place.cat === state.filter;
     });
   }
@@ -171,9 +182,9 @@ function viewFeed() {
       </div>
       <div class="post-body">
         <div class="post-user">
-          <div class="u-av">${p.emoji}</div>
-          <div>
-            <div class="u-name">${esc(p.user)}${p.mine ? ' <span class="mine-flag">toi</span>' : ""}</div>
+          <div class="u-av" ${p.cloud && p.authorId ? `onclick="openUserProfile('${p.authorId}')" style="cursor:pointer"` : ""}>${p.emoji}</div>
+          <div ${p.cloud && p.authorId ? `onclick="openUserProfile('${p.authorId}')" style="cursor:pointer"` : ""}>
+            <div class="u-name">${esc(p.user)}${p.mine ? ' <span class="mine-flag">toi</span>' : ""}${p.cloud ? ' <span class="cloud-flag">✔</span>' : ""}</div>
             <div class="u-meta">${esc(p.meta)}</div>
           </div>
         </div>
@@ -765,6 +776,59 @@ function hydrateUserPosts(list) {
   }));
 }
 
+/* ---------- onboarding ---------- */
+const INTERESTS = [
+  { key: "food", label: "Food", icon: "🍽️" },
+  { key: "sortir", label: "Sortir", icon: "🍸" },
+  { key: "culture", label: "Culture", icon: "🎭" },
+  { key: "outdoor", label: "Nature", icon: "🌳" },
+  { key: "sport", label: "Sport", icon: "🏅" },
+];
+let myInterests = [];
+try { myInterests = JSON.parse(localStorage.getItem("so-lyon-interests")) || []; } catch (e) {}
+let onboarded = false;
+try { onboarded = localStorage.getItem("so-lyon-onboarded") === "1"; } catch (e) {}
+
+function viewOnboarding() {
+  return `
+    <div class="onboard-hero">
+      <div class="auth-logo" style="font-size:2.8rem">so<span>lyon</span></div>
+      <p class="onboard-tag">Les bons plans food &amp; sorties à Lyon,<br>partagés par ceux qui y vivent.</p>
+      <div class="onboard-illu">🦁</div>
+    </div>
+    <div class="onboard-card">
+      <h2>Qu'est-ce qui te fait vibrer ?</h2>
+      <p class="onboard-sub">Choisis tes envies pour personnaliser ton fil</p>
+      <div class="interest-grid">
+        ${INTERESTS.map((i) => `
+          <button class="interest-tile ${myInterests.includes(i.key) ? "picked" : ""}" onclick="toggleInterest('${i.key}')">
+            <span class="it-icon">${i.icon}</span>
+            <span>${i.label}</span>
+            <span class="it-check">${myInterests.includes(i.key) ? "✓" : ""}</span>
+          </button>`).join("")}
+      </div>
+      <button class="scta primary" style="width:100%;margin-top:18px" onclick="finishOnboarding()">
+        ${myInterests.length ? "C'est parti !" : "Explorer tout"}
+      </button>
+      <p class="onboard-hint">Tu pourras changer tes envies quand tu veux dans ton profil.</p>
+    </div>`;
+}
+
+function toggleInterest(k) {
+  if (myInterests.includes(k)) myInterests = myInterests.filter((x) => x !== k);
+  else myInterests.push(k);
+  try { localStorage.setItem("so-lyon-interests", JSON.stringify(myInterests)); } catch (e) {}
+  render();
+}
+
+function finishOnboarding() {
+  try { localStorage.setItem("so-lyon-onboarded", "1"); } catch (e) {}
+  onboarded = true;
+  state.view = "feed";
+  render();
+  toast("Bienvenue à Lyon ! 🦁");
+}
+
 /* ---------- auth (connexion / inscription) ---------- */
 function viewAuth() {
   return `
@@ -807,6 +871,79 @@ async function doSignIn() {
   } catch (e) { toast("Erreur : " + e.message); }
 }
 
+/* ---------- profil des autres utilisateurs ---------- */
+let viewedUserId = null;
+let viewedProfile = null;
+let viewedPosts = [];
+let viewedFollowers = 0;
+let amFollowing = false;
+
+async function openUserProfile(userId) {
+  if (!CLOUD.enabled) { toast("Les profils arrivent avec le mode cloud 😉"); return; }
+  if (CLOUD.user && userId === CLOUD.user.id) { go("profile"); return; }
+  viewedUserId = userId;
+  state.view = "userprofile";
+  render();
+  try {
+    const { data: prof } = await CLOUD.supabase.from("profiles")
+      .select("*").eq("id", userId).single();
+    viewedProfile = prof;
+    const { data: posts } = await CLOUD.supabase.from("posts")
+      .select("*").eq("author", userId).order("created_at", { ascending: false }).limit(30);
+    viewedPosts = posts || [];
+    viewedFollowers = await countFollowers(userId);
+    if (CLOUD.user) {
+      const { data: f } = await CLOUD.supabase.from("follows")
+        .select("*").eq("follower", CLOUD.user.id).eq("followed", userId);
+      amFollowing = !!(f && f.length);
+    }
+  } catch (e) { toast("Erreur profil : " + e.message); }
+  render();
+}
+
+async function toggleFollow() {
+  if (!CLOUD.user) { toast("Connecte-toi pour suivre quelqu'un"); return; }
+  try {
+    if (amFollowing) { await unfollowUser(viewedUserId); amFollowing = false; viewedFollowers--; toast("Plus suivi"); }
+    else { await followUser(viewedUserId); amFollowing = true; viewedFollowers++; toast("Suivi ! Ses posts arriveront dans ton fil 🎉"); }
+    render();
+  } catch (e) { toast("Erreur : " + e.message); }
+}
+
+function viewUserProfile() {
+  if (!viewedProfile) {
+    return `<div class="empty" style="padding-top:80px">Chargement du profil…</div>`;
+  }
+  const grid = viewedPosts.filter((p) => p.photo_url).map((p) => `
+    <div class="grid-cell" ${p.place_id ? `onclick="openPlace('${p.place_id}')" style="cursor:pointer"` : ""}>
+      <img src="${p.photo_url}" loading="lazy" alt="">
+    </div>`).join("");
+  return `
+    <div class="up-head">
+      <button class="up-back" onclick="go('feed')">‹</button>
+      <div class="up-handle">@${esc(viewedProfile.handle)}</div>
+    </div>
+    <div class="profile-head">
+      <div class="p-avatar">${viewedProfile.avatar_emoji || "🦁"}</div>
+      <div class="p-stats">
+        <div><b>${viewedPosts.length}</b><span>posts</span></div>
+        <div><b>${viewedFollowers}</b><span>followers</span></div>
+        <div><b>${viewedProfile.points || 0}</b><span>points</span></div>
+      </div>
+    </div>
+    <div class="p-name">${esc(viewedProfile.display_name)}</div>
+    <div class="p-bio">${esc(viewedProfile.bio || "")}</div>
+    <div class="p-cta-row">
+      <button class="scta ${amFollowing ? "" : "primary"}" style="flex:1" onclick="toggleFollow()">
+        ${amFollowing ? "✓ Suivi" : "+ Suivre"}
+      </button>
+    </div>
+    ${viewedProfile.bio || viewedPosts.length ? `
+    <div class="section-title"><h2>Ses posts</h2></div>
+    <div class="profile-grid">${grid || '<div class="empty">Pas encore de post avec photo</div>'}</div>` : ""}
+  `;
+}
+
 /* ---------- boot ---------- */
 initCloud().finally(() => {
 Promise.all([loadPhotos(), loadPlaces()]).then(async () => {
@@ -826,6 +963,7 @@ Promise.all([loadPhotos(), loadPlaces()]).then(async () => {
       state.allPosts = [...cloudPosts, ...state.allPosts];
     } catch (e) { console.warn("cloud posts:", e); }
   }
+  if (!onboarded) state.view = "onboarding";
   render();
 });
 });

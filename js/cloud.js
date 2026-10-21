@@ -121,6 +121,7 @@ async function fetchCloudPosts(limit = 50) {
     likes: p.likes || 0,
     comments: 0,
     mine: CLOUD.user && p.author === CLOUD.user.id,
+    authorId: p.author,
     cloud: true,
   }));
 }

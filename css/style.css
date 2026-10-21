@@ -418,3 +418,39 @@ main { padding: 16px 16px calc(84px + var(--safe-bottom)); }
   background: none; border: none; color: var(--ink-faint); margin-top: 22px;
   font-size: .88rem; font-weight: 650; cursor: pointer;
 }
+
+/* ============ Onboarding ============ */
+.onboard-hero { text-align: center; padding: 46px 10px 18px; }
+.onboard-tag { color: var(--ink-soft); margin-top: 12px; font-size: .98rem; line-height: 1.5; }
+.onboard-illu { font-size: 3.4rem; margin-top: 14px; }
+.onboard-card {
+  background: var(--card); border-radius: 22px; padding: 22px 20px; margin: 8px 0 20px;
+  box-shadow: var(--shadow); border: 1px solid rgba(238,226,210,.6);
+}
+.onboard-card h2 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.02em; }
+.onboard-sub { color: var(--ink-faint); font-size: .86rem; margin-top: 3px; margin-bottom: 16px; }
+.interest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.interest-tile {
+  position: relative; border: 2px solid var(--line); border-radius: 16px;
+  background: var(--cream-2); padding: 16px 10px 13px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  font-weight: 700; font-size: .9rem; color: var(--ink-soft); transition: all .15s;
+}
+.interest-tile.picked { border-color: var(--terra); background: var(--terra-soft); color: var(--terra-deep); }
+.it-icon { font-size: 1.7rem; }
+.it-check {
+  position: absolute; top: 8px; right: 10px; font-size: .8rem; font-weight: 800;
+  color: var(--terra);
+}
+.onboard-hint { text-align: center; color: var(--ink-faint); font-size: .78rem; margin-top: 12px; }
+
+/* ============ Profil utilisateur (autre) ============ */
+.up-head { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; }
+.up-back {
+  width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--cream-2);
+  font-size: 1.3rem; color: var(--ink); cursor: pointer; line-height: 1;
+}
+.up-handle { font-weight: 800; font-size: 1.05rem; }
+.cloud-flag {
+  font-size: .6rem; color: #4a83a8; vertical-align: middle;
+}
