@@ -149,3 +149,18 @@ create or replace function public.decrement_like(p uuid)
 returns void language sql security definer set search_path = public as $$
   update public.posts set likes = greatest(likes - 1, 0) where id = p;
 $$;
+
+-- ============================================================
+-- Commentaires
+-- ============================================================
+create table if not exists public.comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  txt text not null,
+  created_at timestamptz default now()
+);
+alter table public.comments enable row level security;
+create policy "commentaires lisibles" on public.comments for select using (true);
+create policy "commenter" on public.comments for insert with check (auth.uid() = user_id);
+create policy "supprimer son commentaire" on public.comments for delete using (auth.uid() = user_id);

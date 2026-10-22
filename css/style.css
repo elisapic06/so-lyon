@@ -507,3 +507,34 @@ svg.ic { vertical-align: -3px; flex-shrink: 0; }
 /* badge progression bar */
 .b-bar { height: 4px; background: var(--cream-2); border-radius: 99px; margin-top: 6px; overflow: hidden; }
 .b-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--terra), var(--gold)); border-radius: 99px; }
+
+/* ============ Feed tabs ============ */
+.feed-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+.feed-tab {
+  flex: 1; padding: 9px; border-radius: 12px; border: 1.5px solid var(--line);
+  background: var(--card); font-weight: 700; font-size: .88rem; color: var(--ink-soft); cursor: pointer;
+}
+.feed-tab.active { background: var(--ink); border-color: var(--ink); color: var(--cream); }
+
+/* ============ Commentaires ============ */
+.comment-row { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.comment-row:last-child { border-bottom: none; }
+.c-av {
+  width: 30px; height: 30px; border-radius: 50%; background: var(--terra-soft); color: var(--terra-deep);
+  display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .8rem; flex-shrink: 0;
+}
+.c-head { font-size: .8rem; display: flex; align-items: baseline; gap: 8px; }
+.c-when { color: var(--ink-faint); font-size: .7rem; font-weight: 500; }
+.c-txt { font-size: .9rem; margin-top: 2px; }
+.comment-add { display: flex; gap: 8px; margin-top: 14px; }
+.comment-add input {
+  flex: 1; padding: 12px 14px; border-radius: 13px; border: 1.5px solid var(--line);
+  background: var(--card); font-size: .9rem; outline: none; color: var(--ink);
+}
+.comment-add input:focus { border-color: var(--terra); }
+
+/* ============ Photos de la communauté (fiche lieu) ============ */
+.place-photos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.place-photos-grid img {
+  width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; cursor: pointer; display: block;
+}

@@ -8,6 +8,8 @@ let state = {
   search: "",
   hood: "Tout Lyon",
   userMarker: null,
+  feedTab: "foryou",
+  followingIds: null,
 };
 
 const CAT_INFO = {
@@ -140,10 +142,18 @@ function viewFeed() {
     ["food", "🍽️ Food"], ["sortir", "🍸 Sortir"],
     ["culture", "🎭 Culture"], ["outdoor", "🌳 Nature"], ["sport", "🏅 Sport"],
   ];
-  const chips = cats.map(([k, l]) =>
-    `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setFilter('${k}')">${l}</button>`).join("");
+  const feedTabs = CLOUD.enabled && CLOUD.user ? `
+    <div class="feed-tabs">
+      <button class="feed-tab ${state.feedTab !== "following" ? "active" : ""}" onclick="setFeedTab('foryou')">Pour toi</button>
+      <button class="feed-tab ${state.feedTab === "following" ? "active" : ""}" onclick="setFeedTab('following')">Abonnements</button>
+    </div>` : "";
+  const chips = feedTabs + cats.map(([k, l]) =>
+    `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setFilter('${k}')">${k !== "all" && k !== "mine" ? catIcon(k, 13) : ""} ${l}</button>`).join("");
 
   let posts = state.allPosts || DEMO_POSTS;
+  if (state.feedTab === "following" && CLOUD.enabled && CLOUD.user) {
+    posts = posts.filter((p) => p.cloud && p.authorId && state.followingIds && state.followingIds.includes(p.authorId));
+  }
   if (state.filter === "mine") {
     // filtre "mes envies" basé sur les intérêts choisis à l'onboarding
     posts = posts.filter((post) => {
@@ -198,8 +208,8 @@ function viewFeed() {
         </div>` : ""}
         <div class="post-actions">
           <button class="pa-btn ${liked ? "on" : ""}" onclick="toggleLike('${p.id}')">${liked ? icon("heart", 15, "filled") : icon("heart", 15)} ${p.likes + (liked ? 1 : 0)}</button>
-          <button class="pa-btn" onclick="toast('Commentaires bientôt disponibles 💬')">${icon("message", 15)} ${p.comments}</button>
-          <button class="pa-btn" onclick="toast('Partagé ✨')">${icon("share", 15)} Partager</button>
+          <button class="pa-btn" onclick="openComments('${p.id}')">${icon("message", 15)} ${p.comments}</button>
+          <button class="pa-btn" onclick="sharePost('${p.id}', '${esc(p.place || "")}')">${icon("share", 15)} Partager</button>
         </div>
       </div>
     </article>`;
@@ -213,6 +223,15 @@ function viewFeed() {
 }
 
 function setFilter(f) { state.filter = f; render(); }
+
+function setFeedTab(t) {
+  state.feedTab = t;
+  if (t === "following" && CLOUD.enabled && CLOUD.user && !state.followingIds) {
+    fetchFollowingIds().then((ids) => { state.followingIds = ids; render(); })
+      .catch(() => toast("Erreur abonnements"));
+  }
+  render();
+}
 
 function toggleLike(id) {
   const liked = state.liked.has(id);
@@ -535,6 +554,7 @@ function openPlace(id) {
         Données OpenStreetMap © les contributeurs d'OSM
       </p>
     </div>`);
+  loadPlaceUserPhotos(id);
 }
 
 function copyAddr(a) { if (a && a !== "—") toast("Adresse : " + a); }
@@ -671,6 +691,95 @@ document.querySelector(".avatar")?.addEventListener("click", (e) => {
   if (CLOUD.enabled && !CLOUD.user) go("auth");
   else go("profile");
 });
+
+/* ---------- partage ---------- */
+async function sharePost(postId, placeName) {
+  const url = location.origin + location.pathname;
+  const text = (placeName ? placeName + " — " : "") + "Découvert sur So Lyon";
+  if (navigator.share) {
+    try { await navigator.share({ title: "So Lyon", text, url }); return; } catch (e) {}
+  }
+  try {
+    await navigator.clipboard.writeText(text + " " + url);
+    toast("Lien copié dans le presse-papier");
+  } catch (e) { toast(url); }
+}
+
+async function sharePlace(pName) {
+  const url = location.origin + location.pathname;
+  const text = pName + " — vu sur So Lyon";
+  if (navigator.share) {
+    try { await navigator.share({ title: "So Lyon", text, url }); return; } catch (e) {}
+  }
+  try {
+    await navigator.clipboard.writeText(text + " " + url);
+    toast("Lien copié");
+  } catch (e) { toast(url); }
+}
+
+/* ---------- commentaires ---------- */
+let LOCAL_COMMENTS = {};
+try { LOCAL_COMMENTS = JSON.parse(localStorage.getItem("so-lyon-comments")) || {}; } catch (e) {}
+function saveLocalComments() {
+  try { localStorage.setItem("so-lyon-comments", JSON.stringify(LOCAL_COMMENTS)); } catch (e) {}
+}
+
+function openComments(postId) {
+  openSheet(`
+    <div class="sheet-grab"></div>
+    <div class="sheet-body" style="padding-bottom:20px">
+      <h2 style="font-size:1.2rem">Commentaires</h2>
+      <div id="comments-list" style="margin-top:12px"><div class="empty" style="padding:14px">Chargement…</div></div>
+      <div class="comment-add">
+        <input id="comment-input" placeholder="Ajouter un commentaire…" onkeydown="if(event.key==='Enter')submitComment('${postId}')">
+        <button class="todo-add-btn" onclick="submitComment('${postId}')">${icon("send", 16, "c-white")}</button>
+      </div>
+    </div>`);
+  loadComments(postId);
+}
+
+async function loadComments(postId) {
+  const list = document.getElementById("comments-list");
+  let html = "";
+  // locaux
+  (LOCAL_COMMENTS[postId] || []).forEach((c) => {
+    html += commentRow(c.txt, c.when, "T", null);
+  });
+  // cloud
+  if (CLOUD.enabled) {
+    try {
+      const cs = await fetchComments(postId);
+      cs.forEach((c) => { html += commentRow(c.txt, c.when, c.initial, c.authorId); });
+    } catch (e) {}
+  }
+  list.innerHTML = html || '<div class="empty" style="padding:14px">Pas encore de commentaire.<br>Sois la première personne à réagir !</div>';
+}
+
+function commentRow(txt, when, initial, authorId) {
+  return `<div class="comment-row">
+    <span class="c-av">${esc(initial)}</span>
+    <div class="c-main">
+      <div class="c-head"><b>${esc(initial === "T" ? "Toi" : "Auteur")}</b> <span class="c-when">${esc(when)}</span></div>
+      <div class="c-txt">${esc(txt)}</div>
+    </div>
+  </div>`;
+}
+
+async function submitComment(postId) {
+  const inp = document.getElementById("comment-input");
+  const txt = (inp.value || "").trim();
+  if (!txt) return;
+  inp.value = "";
+  if (CLOUD.enabled && CLOUD.user) {
+    try { await addComment(postId, txt); }
+    catch (e) { toast("Erreur : " + e.message); return; }
+  } else {
+    (LOCAL_COMMENTS[postId] = LOCAL_COMMENTS[postId] || []).push({ txt, when: "à l'instant" });
+    saveLocalComments();
+  }
+  loadComments(postId);
+  toast("Commentaire publié");
+}
 
 /* ---------- storage (autonome: données dans le navigateur) ---------- */
 const DB_NAME = "so-lyon-db";
@@ -1163,7 +1272,7 @@ function viewProfile() {
     <div class="p-name">${esc(PROFILE.name)} <span>${esc(PROFILE.handle)}</span></div>
     <div class="p-bio">${esc(PROFILE.bio)}</div>
     <div class="p-cta-row">
-      <button class="scta primary" style="flex:1" onclick="toast('Edition du profil — avec les comptes réels 😉')">Modifier le profil</button>
+      <button class="scta primary" style="flex:1" onclick="openEditProfile()">Modifier le profil</button>
     </div>
 
     <div class="section-title"><h2>Ma to-do list</h2><span style="font-size:.8rem;color:var(--ink-faint)">${TODO_IDEAS.filter(t=>!t.done).length} en attente</span></div>
@@ -1229,7 +1338,7 @@ async function viewProfileCloud() {
     ${prof.account_type === "pro" && prof.claimed_place_id ? `
     <div class="pro-place-link" onclick="openPlace('${prof.claimed_place_id}')">${icon("map-pin", 15)} Voir mon établissement</div>` : ""}
     <div class="p-cta-row">
-      <button class="scta primary" style="flex:1" onclick="toast('Édition du profil — bientôt')">Modifier</button>
+      <button class="scta primary" style="flex:1" onclick="openEditProfile()">Modifier</button>
       <button class="scta" style="flex:1" onclick="doSignOut()">${icon("log-out", 15)} Se déconnecter</button>
     </div>
     <div class="section-title"><h2>Ma to-do list</h2></div>

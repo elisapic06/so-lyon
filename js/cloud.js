@@ -192,3 +192,70 @@ async function fetchCloudTodos() {
   if (error) throw error;
   return data;
 }
+
+/* ---------- commentaires ---------- */
+
+async function fetchComments(postId) {
+  const { data, error } = await CLOUD.supabase
+    .from("comments")
+    .select("id, txt, created_at, user_id, profiles!comments_user_id_fkey (handle, display_name, avatar_emoji)")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true })
+    .limit(100);
+  if (error) throw error;
+  return (data || []).map((c) => ({
+    id: c.id,
+    txt: c.txt,
+    when: timeAgo(c.created_at),
+    author: c.profiles?.display_name || "?",
+    initial: (c.profiles?.display_name || "?")[0],
+    authorId: c.user_id,
+  }));
+}
+
+async function addComment(postId, txt) {
+  const { error } = await CLOUD.supabase
+    .from("comments").insert({ post_id: postId, user_id: CLOUD.user.id, txt });
+  if (error) throw error;
+}
+
+async function countComments(postIds) {
+  if (!postIds.length) return {};
+  const { data } = await CLOUD.supabase
+    .from("comments").select("post_id")
+    .in("post_id", postIds);
+  const out = {};
+  (data || []).forEach((c) => { out[c.post_id] = (out[c.post_id] || 0) + 1; });
+  return out;
+}
+
+/* ---------- abonnements ---------- */
+
+async function fetchFollowingIds() {
+  const { data } = await CLOUD.supabase
+    .from("follows").select("followed").eq("follower", CLOUD.user.id);
+  return (data || []).map((f) => f.followed);
+}
+
+/* ---------- photos des users pour une fiche lieu ---------- */
+
+async function fetchPlacePosts(placeId, limit = 6) {
+  const { data, error } = await CLOUD.supabase
+    .from("posts")
+    .select("id, photo_url, created_at, author, profiles!posts_author_fkey (handle, display_name)")
+    .eq("place_id", placeId)
+    .not("photo_url", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
+/* ---------- édition du profil ---------- */
+
+async function updateProfile(fields) {
+  const { error } = await CLOUD.supabase
+    .from("profiles").update(fields).eq("id", CLOUD.user.id);
+  if (error) throw error;
+  Object.assign(CLOUD.profile, fields);
+}
