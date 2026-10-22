@@ -1307,6 +1307,50 @@ function toggleTodo(id) {
   render();
 }
 
+/* ---------- édition du profil ---------- */
+let LOCAL_PROFILE = {};
+try { LOCAL_PROFILE = JSON.parse(localStorage.getItem("so-lyon-me")) || {}; } catch (e) {}
+function saveLocalProfile() {
+  try { localStorage.setItem("so-lyon-me", JSON.stringify(LOCAL_PROFILE)); } catch (e) {}
+}
+
+function openEditProfile() {
+  const prof = CLOUD.enabled && CLOUD.profile ? CLOUD.profile : LOCAL_PROFILE;
+  openSheet(`
+    <div class="sheet-grab"></div>
+    <div class="sheet-body" style="padding-bottom:20px">
+      <h2 style="font-size:1.2rem">Modifier mon profil</h2>
+      <div class="field" style="margin-top:14px"><label>Nom affiché</label>
+        <input id="ep-name" value="${esc(prof.display_name || "")}" placeholder="Ton nom"></div>
+      <div class="field"><label>Pseudo</label>
+        <input id="ep-handle" value="${esc(prof.handle || "")}" placeholder="ton.pseudo"></div>
+      <div class="field"><label>Bio</label>
+        <textarea id="ep-bio" placeholder="En quelques mots…">${esc(prof.bio || "")}</textarea></div>
+      <button class="scta primary" style="width:100%" onclick="saveProfileEdits()">Enregistrer</button>
+    </div>`);
+}
+
+async function saveProfileEdits() {
+  const displayName = document.getElementById("ep-name").value.trim();
+  const handle = document.getElementById("ep-handle").value.trim().toLowerCase().replace(/[^a-z0-9._]/g, "");
+  const bio = document.getElementById("ep-bio").value.trim();
+  if (!displayName) { toast("Le nom est requis"); return; }
+  const fields = { display_name: displayName, handle: handle || displayName.toLowerCase().replace(/\s+/g, "."), bio };
+  if (CLOUD.enabled && CLOUD.user) {
+    try { await updateProfile(fields); }
+    catch (e) { toast("Erreur : " + e.message); return; }
+  } else {
+    Object.assign(LOCAL_PROFILE, fields);
+    if (LOCAL_PROFILE.display_name) PROFILE.name = LOCAL_PROFILE.display_name;
+    if (LOCAL_PROFILE.handle) PROFILE.handle = "@" + LOCAL_PROFILE.handle;
+    if (LOCAL_PROFILE.bio) PROFILE.bio = LOCAL_PROFILE.bio;
+    saveLocalProfile();
+  }
+  closeSheet(true);
+  render();
+  toast("Profil mis à jour");
+}
+
 /* ---------- profil cloud (connecté) ---------- */
 async function viewProfileCloud() {
   const prof = CLOUD.profile;
