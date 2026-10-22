@@ -505,7 +505,7 @@ function openPlace(id) {
 
       <div class="info-grid">
         <div class="info-cell" onclick="copyAddr('${esc(fullAddr)}')" style="cursor:pointer">
-          <div class="ic-label">📍 Adresse</div>
+          <div class="ic-label">📍 Adresse${p.addr_approx ? " <span style=\"font-weight:400;text-transform:none\">(à proximité)</span>" : ""}</div>
           <div class="ic-val ${fullAddr ? "" : "muted"}">${esc(fullAddr || "—")}${p.city ? `<br><span style="font-weight:400;color:var(--ink-faint)">${esc(p.city)}</span>` : ""}</div>
         </div>
         <div class="info-cell" ${p.phone ? `onclick="window.location.href='tel:'+'${esc(p.phone)}'" style="cursor:pointer"` : ""}>
