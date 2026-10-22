@@ -1050,6 +1050,10 @@ let todoView = "all";
 const WEEK_ACTIVITY = [3, 1, 4, 2, 5, 2, 6];
 
 function viewProfile() {
+  // mode cloud : identité réelle + déconnexion
+  if (CLOUD.enabled && CLOUD.user && CLOUD.profile) {
+    return viewProfileCloud();
+  }
   const photoPosts = DEMO_POSTS.filter((p) => {
     const pl = PLACES.find((x) => x.name === p.place);
     return pl && PHOTOS[pl.id];
@@ -1121,6 +1125,80 @@ function toggleTodo(id) {
   t.done = !t.done;
   saveTodos();
   render();
+}
+
+/* ---------- profil cloud (connecté) ---------- */
+async function viewProfileCloud() {
+  const prof = CLOUD.profile;
+  const { data: myPosts } = await CLOUD.supabase
+    .from("posts").select("*").eq("author", CLOUD.user.id)
+    .order("created_at", { ascending: false }).limit(30);
+  const posts = myPosts || [];
+  const followers = await countFollowers(CLOUD.user.id);
+  const { count: following } = await CLOUD.supabase
+    .from("follows").select("*", { count: "exact", head: true })
+    .eq("follower", CLOUD.user.id);
+
+  const grid = posts.filter((p) => p.photo_url).map((p) => `
+    <div class="grid-cell" ${p.place_id ? `onclick="openPlace('${p.place_id}')" style="cursor:pointer"` : ""}>
+      <img src="${p.photo_url}" loading="lazy" alt="">
+    </div>`).join("");
+
+  return `
+    <div class="profile-head">
+      <div class="p-avatar">${prof.avatar_emoji || "🦁"}</div>
+      <div class="p-stats">
+        <div><b>${posts.length}</b><span>posts</span></div>
+        <div><b>${followers}</b><span>followers</span></div>
+        <div><b>${following || 0}</b><span>suivis</span></div>
+      </div>
+    </div>
+    <div class="p-name">${esc(prof.display_name)} ${prof.account_type === "pro" ? '<span class="pro-flag">PRO</span>' : ""} <span>@${esc(prof.handle)}</span></div>
+    <div class="p-bio">${esc(prof.bio || "")}</div>
+    ${prof.account_type === "pro" && prof.claimed_place_id ? `
+    <div class="pro-place-link" onclick="openPlace('${prof.claimed_place_id}')">📍 Voir mon établissement</div>` : ""}
+    <div class="p-cta-row">
+      <button class="scta primary" style="flex:1" onclick="toast('Édition du profil — bientôt')">Modifier</button>
+      <button class="scta" style="flex:1" onclick="doSignOut()">Se déconnecter</button>
+    </div>
+    <div class="section-title"><h2>Ma to-do list</h2></div>
+    <div class="chips">
+      <button class="chip ${todoView === "all" ? "active" : ""}" onclick="setTodoView('all')">Toutes</button>
+      <button class="chip ${todoView === "pub" ? "active" : ""}" onclick="setTodoView('pub')">Pour tous</button>
+      <button class="chip ${todoView === "priv" ? "active" : ""}" onclick="setTodoView('priv')">Privées</button>
+    </div>
+    <div class="todo" id="cloud-todo">${todoHTMLForProfile()}</div>
+    <div class="todo-add">
+      <input id="todo-input" placeholder="Ex : brunch chez Mokxa…" onkeydown="if(event.key==='Enter')addTodo()">
+      <div class="todo-vis-toggle">
+        <button class="chip ${todoAddPub ? "active" : ""}" onclick="todoAddPub=true;renderTodoOnly()">Pour tous</button>
+        <button class="chip ${!todoAddPub ? "active" : ""}" onclick="todoAddPub=false;renderTodoOnly()">Privé</button>
+      </div>
+      <button class="todo-add-btn" onclick="addTodo()">＋</button>
+    </div>
+    <div class="section-title"><h2>Mes posts</h2></div>
+    <div class="profile-grid">${grid || '<div class="empty">Publie ton premier post avec le bouton ＋ du fil !</div>'}</div>`;
+}
+
+function todoHTMLForProfile() {
+  const shown = TODO_IDEAS.filter((t) => todoView === "all" || (todoView === "pub" ? t.pub : !t.pub));
+  return shown.map((t) => `
+    <div class="todo-row ${t.pub ? "" : "private"}" onclick="toggleTodo('${t.id}')">
+      <span class="todo-check ${t.done ? "done" : ""}">${t.done ? "✓" : ""}</span>
+      <span class="todo-txt ${t.done ? "done" : ""}">${esc(t.txt)}</span>
+      <span class="todo-del" onclick="event.stopPropagation(); delTodo('${t.id}')">✕</span>
+      ${t.pub ? "" : '<span class="todo-dot" title="Privé"></span>'}
+    </div>`).join("") || '<div class="empty" style="padding:18px">Rien ici — ajoute une idée !</div>';
+}
+
+async function doSignOut() {
+  try {
+    await signOutUser();
+    toast("À bientôt 👋");
+    state.view = "feed";
+    state.allPosts = [...USER_POSTS, ...DEMO_POSTS];
+    render();
+  } catch (e) { toast("Erreur : " + e.message); }
 }
 
 function delTodo(id) {
