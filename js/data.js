@@ -1,9 +1,9 @@
 const DEMO_POSTS = [
-  { id: "p1", user: "Camille", emoji: "🙋‍♀️", meta: "il y a 2 h · Presqu'île", text: "La brasserie légendaire de Lyon. On mange divinement bien pour le prix, le décor est à tomber. Réservez !", place: "Brasserie Georges", likes: 34, comments: 6, tags: ["brasserie", "petitprix"] },
-  { id: "p2", user: "Yanis", emoji: "🧑‍🎨", meta: "il y a 5 h · Presqu'île", text: "Le meilleur café de la presqu'île pour bouquiner. Salon au calme, ils font une flûte extraordinaire.", place: "Café Français", likes: 21, comments: 2, tags: ["café", "cosy"] },
-  { id: "p3", user: "Sofia", emoji: "👩‍🍳", meta: "hier · Confluence", text: "Le vrai bouchon lyonnais, quenelles à tomber. Ambiance typique et serveurs qui taquinent. J'adore !", place: "Le Bouchon des Filles", likes: 58, comments: 12, tags: ["bouchon", "tradition"] },
-  { id: "p4", user: "Théo", emoji: "🧗", meta: "hier · Tête d'Or", text: "Session footing du matin au parc, les gazons au lever du jour 😍 j'ai même croisé les flamants roses.", place: "Parc de la Tête d'Or", likes: 27, comments: 3, tags: ["sport", "nature"] },
-  { id: "p5", user: "Inès", emoji: "🌿", meta: "il y a 2 j · Part-Dieu", text: "Musée magnifique et gratuit le 1er dimanche du mois. Les collections contemporaines valent le détour.", place: "Musée d'Art Contemporain", likes: 44, comments: 8, tags: ["culture", "gratuit"] },
+  { id: "p1", user: "Camille", emoji: "C", meta: "il y a 2 h · Presqu'île", text: "La brasserie légendaire de Lyon. On mange divinement bien pour le prix, le décor est à tomber. Réservez !", place: "Brasserie Georges", likes: 34, comments: 6, tags: ["brasserie", "petitprix"] },
+  { id: "p2", user: "Yanis", emoji: "Y", meta: "il y a 5 h · Presqu'île", text: "Le meilleur café de la presqu'île pour bouquiner. Salon au calme, ils font une flûte extraordinaire.", place: "Café Français", likes: 21, comments: 2, tags: ["café", "cosy"] },
+  { id: "p3", user: "Sofia", emoji: "S", meta: "hier · Confluence", text: "Le vrai bouchon lyonnais, quenelles à tomber. Ambiance typique et serveurs qui taquinent. J'adore !", place: "Le Bouchon des Filles", likes: 58, comments: 12, tags: ["bouchon", "tradition"] },
+  { id: "p4", user: "Théo", emoji: "T", meta: "hier · Tête d'Or", text: "Session footing du matin au parc, les gazons au lever du jour 😍 j'ai même croisé les flamants roses.", place: "Parc de la Tête d'Or", likes: 27, comments: 3, tags: ["sport", "nature"] },
+  { id: "p5", user: "Inès", emoji: "I", meta: "il y a 2 j · Part-Dieu", text: "Musée magnifique et gratuit le 1er dimanche du mois. Les collections contemporaines valent le détour.", place: "Musée d'Art Contemporain", likes: 44, comments: 8, tags: ["culture", "gratuit"] },
 ];
 
 const CHALLENGES = [
@@ -15,13 +15,13 @@ const CHALLENGES = [
 ];
 
 const BADGES = [
-  { ic: "🥐", name: "Croissant d'or", desc: "5 boulangeries visitées", earned: true },
-  { ic: "🦁", name: "Petit lion", desc: "Premier post publié", earned: true },
-  { ic: "☕", name: "Caférine", desc: "10 cafés testés", earned: true },
-  { ic: "🏛️", name: "Culture vautf", desc: "3 musées visités", earned: false },
-  { ic: "🌳", name: "Nomade", desc: "5 parcs explorés", earned: false },
-  { ic: "🍲", name: "Quenelle d'or", desc: "3 bouchons complétés", earned: false },
-  { ic: "🏃", name: "Endurance", desc: "10 activités sportives", earned: false },
-  { ic: "📸", name: "Influenceur", desc: "100 likes reçus", earned: false },
-  { ic: "🗺️", name: "Explorateur", desc: "20 lieux différents", earned: false },
+  { ic: "food", name: "Boulangeries", desc: "Niveau 2 · 5 visites", earned: true },
+  { ic: "star", name: "Premier post", desc: "Débloqué", earned: true },
+  { ic: "drink", name: "Cafés", desc: "Niveau 1 · 4/10 testés", earned: true },
+  { ic: "culture", name: "Musées", desc: "1/3 visités", earned: false },
+  { ic: "nature", name: "Parcs", desc: "2/5 explorés", earned: false },
+  { ic: "food", name: "Bouchons", desc: "0/3 complétés", earned: false },
+  { ic: "sport", name: "Sport", desc: "3/10 activités", earned: false },
+  { ic: "heart", name: "Popularité", desc: "18/100 likes reçus", earned: false },
+  { ic: "map", name: "Explorateur", desc: "6/20 lieux différents", earned: false },
 ];

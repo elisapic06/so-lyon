@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon-32.png">
 <title>So Lyon — food & activités à Lyon</title>
-<link rel="stylesheet" href="css/style.css?v=14">
+<link rel="stylesheet" href="css/style.css?v=15">
 </head>
 <body>
 <div id="app">
@@ -19,8 +19,8 @@
     <div class="topbar-inner">
       <div class="logo" onclick="go('feed')">so<span>lyon</span></div>
       <div class="topbar-actions">
-        <button class="icon-btn" onclick="openSearch()" aria-label="Rechercher">🔍</button>
-        <div class="avatar" onclick="go('profile')">🦁</div>
+        <button class="icon-btn" onclick="openSearch()" aria-label="Rechercher" id="topbar-search-btn"></button>
+        <div class="avatar" onclick="go('profile')" id="topbar-avatar"></div>
       </div>
     </div>
   </header>
@@ -28,18 +28,19 @@
   <main id="view"></main>
 
   <nav class="tabbar">
-    <button class="tab active" data-tab="feed" onclick="go('feed')"><span>🍜</span>Fil</button>
-    <button class="tab" data-tab="challenges" onclick="go('challenges')"><span>🏁</span>Défis</button>
-    <button class="tab" data-tab="map" onclick="go('map')"><span>🗺️</span>Carte</button>
-    <button class="tab" data-tab="badges" onclick="go('badges')"><span>🏅</span>Badges</button>
+    <button class="tab active" data-tab="feed" onclick="go('feed')"><span id="tab-ic-feed"></span>Fil</button>
+    <button class="tab" data-tab="challenges" onclick="go('challenges')"><span id="tab-ic-challenges"></span>Défis</button>
+    <button class="tab" data-tab="map" onclick="go('map')"><span id="tab-ic-map"></span>Carte</button>
+    <button class="tab" data-tab="badges" onclick="go('badges')"><span id="tab-ic-badges"></span>Badges</button>
   </nav>
 </div>
 
 <div id="sheet-backdrop" class="sheet-backdrop" onclick="closeSheet()"></div>
 <div id="sheet" class="sheet"></div>
 
-<script src="js/cloud.js?v=14"></script>
-<script src="js/data.js?v=14"></script>
-<script src="js/app.js?v=14"></script>
+<script src="js/icons.js?v=15"></script>
+<script src="js/cloud.js?v=15"></script>
+<script src="js/data.js?v=15"></script>
+<script src="js/app.js?v=15"></script>
 </body>
 </html>

@@ -11,12 +11,12 @@ let state = {
 };
 
 const CAT_INFO = {
-  food:     { label: "Food",     icon: "🍽️", bg: "#f7e2d8", color: "#ce6a4a" },
-  sortir:   { label: "Sortir",  icon: "🍸", bg: "#f5dce6", color: "#c14f7c" },
-  culture:  { label: "Culture",  icon: "🎭", bg: "#f3e7f4", color: "#8e5fa8" },
-  outdoor:  { label: "Nature",   icon: "🌳", bg: "#e9efe2", color: "#5e7c52" },
-  sport:    { label: "Sport",    icon: "🏅", bg: "#eaf1f5", color: "#4a83a8" },
-  other:    { label: "Lieu",     icon: "📍", bg: "#f4eada", color: "#6b5c4e" },
+  food:     { label: "Food",     bg: "#f7e2d8", color: "#ce6a4a" },
+  sortir:   { label: "Sortir",  bg: "#f5dce6", color: "#c14f7c" },
+  culture:  { label: "Culture",  bg: "#f3e7f4", color: "#8e5fa8" },
+  outdoor:  { label: "Nature",   bg: "#e9efe2", color: "#5e7c52" },
+  sport:    { label: "Sport",    bg: "#eaf1f5", color: "#4a83a8" },
+  other:    { label: "Lieu",     bg: "#f4eada", color: "#6b5c4e" },
 };
 
 const AMENITY_LABEL = {
@@ -170,13 +170,13 @@ function viewFeed() {
     const price = place ? displayPrice(place) : "";
     const open = place ? isOpenNow(place) : null;
     const openBadge = open === null ? "" : open
-      ? `<span class="pill" style="font-size:.68rem;padding:2px 8px;">🟢 ouvert</span>`
-      : `<span class="pill no" style="font-size:.68rem;padding:2px 8px;">🔴 fermé</span>`;
+      ? `<span class="pill" style="font-size:.68rem;padding:2px 8px;">ouvert</span>`
+      : `<span class="pill no" style="font-size:.68rem;padding:2px 8px;">fermé</span>`;
     const liked = state.liked.has(p.id);
     return `
     <article class="post">
       <div class="post-img" style="background:${info.bg}" onclick="openPlace('${place ? place.id : ""}')">
-        ${p._photoURL ? `<img src="${p._photoURL}" alt="">` : place && PHOTOS[place.id] ? `<img src="${PHOTOS[place.id]}" alt="${esc(place.name)}" loading="lazy">` : `<span>${info.icon}</span>`}
+        ${p._photoURL ? `<img src="${p._photoURL}" alt="">` : place && PHOTOS[place.id] ? `<img src="${PHOTOS[place.id]}" alt="${esc(place.name)}" loading="lazy">` : `<span>${catIcon(place ? place.cat : "other", 34)}</span>`}
         <span class="cat-tag">${info.label}</span>
         ${price ? `<span class="price-tag">${price}</span>` : ""}
       </div>
@@ -192,14 +192,14 @@ function viewFeed() {
         <div class="post-tags">${p.tags.map((t) => `<span class="ptag ${t === "terrasse" ? "t" : ""}">#${esc(t)}</span>`).join("")}</div>
         ${place ? `
         <div class="post-place" onclick="openPlace('${place.id}')">
-          <span class="pp-ic">📍</span>
+          <span class="pp-ic">${icon("map-pin", 15, "c-terra")}</span>
           <span class="pp-name">${esc(place.name)}</span>
-          <span class="pp-open">${openBadge} <span style="font-size:1rem">›</span></span>
+          <span class="pp-open">${openBadge} <span style="font-size:1rem;color:var(--ink-faint)">›</span></span>
         </div>` : ""}
         <div class="post-actions">
-          <button class="pa-btn ${liked ? "on" : ""}" onclick="toggleLike('${p.id}')">${liked ? "❤️" : "🤍"} ${p.likes + (liked ? 1 : 0)}</button>
-          <button class="pa-btn" onclick="toast('Commentaires bientôt disponibles 💬')">💬 ${p.comments}</button>
-          <button class="pa-btn" onclick="toast('Partagé ✨')">↗ Partager</button>
+          <button class="pa-btn ${liked ? "on" : ""}" onclick="toggleLike('${p.id}')">${liked ? icon("heart", 15, "filled") : icon("heart", 15)} ${p.likes + (liked ? 1 : 0)}</button>
+          <button class="pa-btn" onclick="toast('Commentaires bientôt disponibles 💬')">${icon("message", 15)} ${p.comments}</button>
+          <button class="pa-btn" onclick="toast('Partagé ✨')">${icon("share", 15)} Partager</button>
         </div>
       </div>
     </article>`;
@@ -209,7 +209,7 @@ function viewFeed() {
     <div class="view-head"><h1>Le fil de Lyon</h1><p>Les bons plans partagés par la communauté</p></div>
     <div class="chips">${chips}</div>
     ${cards || `<div class="empty">Pas encore de post dans cette catégorie 🌱</div>`}
-    <button class="fab" onclick="openCreatePost()" aria-label="Créer">＋</button>`;
+    <button class="fab" onclick="openCreatePost()" aria-label="Créer">${icon("plus", 22, "c-white")}</button>`;
 }
 
 function setFilter(f) { state.filter = f; render(); }
@@ -227,13 +227,13 @@ function toggleLike(id) {
 function viewChallenges() {
   const cards = CHALLENGES.map((c) => `
     <div class="chal ${c.hot ? "hot" : ""}" onclick="showChallenge('${c.id}')">
-      <div class="chal-cat">🏆 ${c.cat} · ${c.n} participants</div>
+      <div class="chal-cat">${c.cat} · ${c.n} participants</div>
       <h3>${esc(c.title)}</h3>
       <p>${esc(c.desc)}</p>
       <div class="progressbar"><i style="width:${Math.min(100, (c.progress / c.goal) * 100)}%"></i></div>
       <div class="chal-meta"><span>${c.progress}/${c.goal} complétés</span></div>
       <button class="chal-join ${c.joined ? "joined" : ""}" onclick="event.stopPropagation(); toggleJoin('${c.id}')">
-        ${c.joined ? "✓ Rejoint" : "Rejoindre"}
+        ${c.joined ? icon("check", 14) + " Rejoint" : "Rejoindre"}
       </button>
     </div>`).join("");
 
@@ -246,7 +246,7 @@ function viewChallenges() {
       <button class="chip" onclick="toast('Filtres bientôt disponibles')">Sport</button>
     </div>
     ${cards}
-    <button class="fab" onclick="openCreateChallenge()" aria-label="Créer un défi">＋</button>`;
+    <button class="fab" onclick="openCreateChallenge()" aria-label="Créer un défi">${icon("plus", 22, "c-white")}</button>`;
 }
 
 function toggleJoin(id) {
@@ -309,7 +309,7 @@ function viewBadges() {
     <div class="badges-grid">
       ${BADGES.map((b) => `
         <div class="badge ${b.earned ? "earned" : ""}">
-          <span class="b-ic">${b.ic}</span>
+          <span class="b-ic">${icon(b.ic, 26, b.earned ? "c-terra" : "")}</span>
           <div class="b-name">${esc(b.name)}</div>
           <div class="b-desc">${esc(b.desc)}</div>
         </div>`).join("")}
@@ -344,12 +344,12 @@ function viewMap() {
       </select>
     </div>
     <div class="chips" id="map-chips">
-      <button class="chip ${state.filter === "all" ? "active" : ""}" onclick="setMapFilter('all')">✨ Tout</button>
+      <button class="chip ${state.filter === "all" ? "active" : ""}" onclick="setMapFilter('all')">Tout</button>
       ${["food", "sortir", "culture", "outdoor", "sport"].map((k) =>
-        `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setMapFilter('${k}')">${CAT_INFO[k].icon} ${CAT_INFO[k].label} · ${counts[k] || 0}</button>`).join("")}
+        `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setMapFilter('${k}')">${catIcon(k, 14)} ${CAT_INFO[k].label} · ${counts[k] || 0}</button>`).join("")}
     </div>
     <div id="map-frame"></div>
-    <button class="locate-btn" onclick="locateMe()">📍 Autour de moi</button>
+    <button class="locate-btn" onclick="locateMe()">${icon("crosshair", 15)} Autour de moi</button>
     <p class="map-hint">Tape une épingle pour ouvrir la fiche du lieu</p>`;
 }
 
@@ -418,11 +418,12 @@ function initMap() {
 
 function pinIcon(cat) {
   const info = CAT_INFO[cat] || CAT_INFO.other;
+  const glyph = ICONS[CAT_ICON[cat] || "map-pin"];
   const svg = "data:image/svg+xml," + encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="42" viewBox="0 0 34 42">` +
-    `<path d="M17 1C8.7 1 2 7.7 2 16c0 11 15 24 15 24s15-13 15-24C32 7.7 25.3 1 17 1z" fill="${info.color}" stroke="#fff" stroke-width="2"/>` +
-    `<text x="17" y="21.5" font-size="12" text-anchor="middle" dominant-baseline="middle">${info.icon}</text></svg>`);
-  return L.icon({ iconUrl: svg, iconSize: [34, 42], iconAnchor: [17, 42], popupAnchor: [0, -36] });
+    `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38">` +
+    `<path d="M15 1C7.8 1 2 6.8 2 14c0 9.5 13 22 13 22s13-12.5 13-22C28 6.8 22.2 1 15 1z" fill="${info.color}" stroke="#fff" stroke-width="1.6"/>` +
+    `<g transform="translate(9,7) scale(0.5)" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${glyph}</g></svg>`);
+  return L.icon({ iconUrl: svg, iconSize: [30, 38], iconAnchor: [15, 38], popupAnchor: [0, -34] });
 }
 
 function buildMap(frame) {
@@ -481,23 +482,23 @@ function openPlace(id) {
   const price = displayPrice(p);
 
   const pills = [];
-  if (p.outdoor_seating === "yes") pills.push(["🌳 Terrasse", ""]);
-  if (p.wheelchair === "yes") pills.push(["♿ Accessible PMR", ""]);
-  if (p.takeaway === "yes") pills.push(["🥡 Vente à emporter", ""]);
-  if (p.delivery === "yes") pills.push(["🛵 Livraison", ""]);
-  if (p.vegetarian === "yes" || p.vegan === "yes") pills.push(["🌿 Veggie friendly", ""]);
-  if (p.dog === "yes") pills.push(["🐶 Animaux bienvenus", ""]);
-  if (p.internet_access === "wlan" || p.internet_access === "yes") pills.push(["📶 Wi-Fi", ""]);
-  if (price === "€") pills.push(["💰 Petit prix", "warn"]);
+  if (p.outdoor_seating === "yes") pills.push(["Terrasse", ""]);
+  if (p.wheelchair === "yes") pills.push(["Accessible PMR", ""]);
+  if (p.takeaway === "yes") pills.push(["À emporter", ""]);
+  if (p.delivery === "yes") pills.push(["Livraison", ""]);
+  if (p.vegetarian === "yes" || p.vegan === "yes") pills.push(["Veggie friendly", ""]);
+  if (p.dog === "yes") pills.push(["Animaux bienvenus", ""]);
+  if (p.internet_access === "wlan" || p.internet_access === "yes") pills.push(["Wi-Fi", ""]);
+  if (price === "€") pills.push(["Petit prix", "warn"]);
 
   const open = isOpenNow(p);
-  const openLabel = open === null ? "" : open ? "🟢 Ouvert maintenant" : "🔴 Fermé actuellement";
+  const openLabel = open === null ? "" : open ? "Ouvert maintenant" : "Fermé actuellement";
 
   openSheet(`
     <div class="sheet-grab"></div>
     ${PHOTOS[p.id]
       ? `<div class="sheet-hero photo"><img src="${PHOTOS[p.id]}" alt="${esc(p.name)}"></div>`
-      : `<div class="sheet-hero" style="background:${info.bg}">${info.icon}</div>`}
+      : `<div class="sheet-hero" style="background:${info.bg}">${catIcon(p.cat, 40, "c-soft")}</div>`}
     <div class="sheet-body">
       <div class="s-cat">${esc(amenity)}${price ? ` · ${price}` : ""}</div>
       <h2>${esc(p.name)}</h2>
@@ -505,19 +506,19 @@ function openPlace(id) {
 
       <div class="info-grid">
         <div class="info-cell" onclick="copyAddr('${esc(fullAddr)}')" style="cursor:pointer">
-          <div class="ic-label">📍 Adresse${p.addr_approx ? " <span style=\"font-weight:400;text-transform:none\">(à proximité)</span>" : ""}</div>
+          <div class="ic-label">${icon("map-pin", 13)} Adresse${p.addr_approx ? " <span style=\"font-weight:400;text-transform:none\">(à proximité)</span>" : ""}</div>
           <div class="ic-val ${fullAddr ? "" : "muted"}">${esc(fullAddr || "—")}${p.city ? `<br><span style="font-weight:400;color:var(--ink-faint)">${esc(p.city)}</span>` : ""}</div>
         </div>
         <div class="info-cell" ${p.phone ? `onclick="window.location.href='tel:'+'${esc(p.phone)}'" style="cursor:pointer"` : ""}>
-          <div class="ic-label">📞 Téléphone</div>
+          <div class="ic-label">${icon("phone", 13)} Téléphone</div>
           <div class="ic-val ${p.phone ? "" : "muted"}">${esc(p.phone || "—")}</div>
         </div>
         <div class="info-cell" ${p.website ? `onclick="window.open('${esc(p.website)}','_blank')" style="cursor:pointer"` : ""}>
-          <div class="ic-label">🌐 Site web</div>
+          <div class="ic-label">${icon("globe", 13)} Site web</div>
           <div class="ic-val ${p.website ? "" : "muted"}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.website || "—")}</div>
         </div>
         <div class="info-cell">
-          <div class="ic-label">🍜 Spécialité</div>
+          <div class="ic-label">${icon("food", 13)} Spécialité</div>
           <div class="ic-val ${p.cuisine ? "" : "muted"}">${esc(p.cuisine ? p.cuisine.split(";")[0].replace(/_/g, " ") : "—")}</div>
         </div>
       </div>
@@ -527,8 +528,8 @@ function openPlace(id) {
       ${pills.length ? `<div class="pills">${pills.map(([l, c]) => `<span class="pill ${c}">${l}</span>`).join("")}</div>` : ""}
 
       <div class="sheet-cta">
-        <button class="scta primary" onclick="checkIn('${p.id}')">✓ J'y suis !</button>
-        <button class="scta" onclick="savePlace('${p.id}')">🔖 Enregistrer</button>
+        <button class="scta primary" onclick="checkIn('${p.id}')">${icon("check", 15)} J'y suis !</button>
+        <button class="scta" onclick="savePlace('${p.id}')">${icon("bookmark", 15)} Enregistrer</button>
       </div>
       <p style="text-align:center;font-size:.7rem;color:var(--ink-faint);margin-top:14px">
         Données OpenStreetMap © les contributeurs d'OSM
@@ -572,7 +573,7 @@ function runSearch(q) {
     const info = CAT_INFO[p.cat] || CAT_INFO.other;
     const sub = [AMENITY_LABEL[p.amenity] || p.amenity, p.street].filter(Boolean).join(" · ");
     return `<div class="place-row" onclick="closeSheet(); openPlaceById('${p.id}')">
-      <span class="pr-ic">${info.icon}</span>
+      <span class="pr-ic">${catIcon(place ? place.cat : "other", 34)}</span>
       <div class="pr-main">
         <div class="pr-name">${esc(p.name)}</div>
         <div class="pr-sub">${esc(sub)}</div>
@@ -679,7 +680,7 @@ function openCreatePost() {
 
       <label class="photo-picker" id="photo-picker">
         <input type="file" accept="image/*" id="post-photo-input" style="display:none" onchange="onPostPhoto(this)">
-        <span id="photo-picker-label">📷 Ajouter une photo</span>
+        <span id="photo-picker-label" style="display:inline-flex;align-items:center;gap:8px">${icon("plus", 16)}Ajouter une photo</span>
       </label>
       <img id="photo-preview" class="photo-preview" style="display:none">
 
@@ -758,7 +759,7 @@ async function submitPost() {
   // mode local
   const id = "up" + Date.now();
   const post = {
-    id, user: "Toi", emoji: "🦁", meta: "à l'instant",
+    id, user: "Toi", emoji: "T", meta: "à l'instant",
     text, place: selectedPlaceId ? placeById(selectedPlaceId).name : "",
     likes: 0, comments: 0, tags: [], mine: true,
   };
@@ -788,11 +789,11 @@ function hydrateUserPosts(list) {
 
 /* ---------- onboarding ---------- */
 const INTERESTS = [
-  { key: "food", label: "Food", icon: "🍽️" },
-  { key: "sortir", label: "Sortir", icon: "🍸" },
-  { key: "culture", label: "Culture", icon: "🎭" },
-  { key: "outdoor", label: "Nature", icon: "🌳" },
-  { key: "sport", label: "Sport", icon: "🏅" },
+  { key: "food", label: "Food", ic: "food" },
+  { key: "sortir", label: "Sortir", ic: "drink" },
+  { key: "culture", label: "Culture", ic: "culture" },
+  { key: "outdoor", label: "Nature", ic: "nature" },
+  { key: "sport", label: "Sport", ic: "sport" },
 ];
 let myInterests = [];
 try { myInterests = JSON.parse(localStorage.getItem("so-lyon-interests")) || []; } catch (e) {}
@@ -804,7 +805,7 @@ function viewOnboarding() {
     <div class="onboard-hero">
       <div class="auth-logo" style="font-size:2.8rem">so<span>lyon</span></div>
       <p class="onboard-tag">Les bons plans food &amp; sorties à Lyon,<br>partagés par ceux qui y vivent.</p>
-      <div class="onboard-illu">🦁</div>
+      <div class="onboard-illu">${icon("map-pin", 52, "c-terra")}</div>
     </div>
     <div class="onboard-card">
       <h2>Qu'est-ce qui te fait vibrer ?</h2>
@@ -812,7 +813,7 @@ function viewOnboarding() {
       <div class="interest-grid">
         ${INTERESTS.map((i) => `
           <button class="interest-tile ${myInterests.includes(i.key) ? "picked" : ""}" onclick="toggleInterest('${i.key}')">
-            <span class="it-icon">${i.icon}</span>
+            <span class="it-icon">${icon(i.ic, 24)}</span>
             <span>${i.label}</span>
             <span class="it-check">${myInterests.includes(i.key) ? "✓" : ""}</span>
           </button>`).join("")}
@@ -850,10 +851,10 @@ function viewAuth() {
       <p class="auth-tag">Les bons plans food &amp; sorties à Lyon,<br>partagés par ceux qui y vivent.</p>
       <div class="auth-type-tabs">
         <button class="auth-tab ${authMode === "particulier" ? "active" : ""}" onclick="setAuthMode('particulier')">
-          <span class="at-ic">🦁</span>Particulier
+          <span class="at-ic">${icon("user", 16)}</span>Particulier
         </button>
         <button class="auth-tab ${authMode === "pro" ? "active" : ""}" onclick="setAuthMode('pro')">
-          <span class="at-ic">🏪</span>Professionnel
+          <span class="at-ic">${icon("store", 16)}</span>Professionnel
         </button>
       </div>
       <div class="auth-card">
@@ -992,7 +993,7 @@ function viewUserProfile() {
     <div class="p-bio">${esc(viewedProfile.bio || "")}</div>
     ${viewedProfile.account_type === "pro" && viewedProfile.claimed_place_id ? `
     <div class="pro-place-link" onclick="openPlace('${viewedProfile.claimed_place_id}')">
-      📍 Voir l'établissement
+      ${icon("map-pin", 15)} Voir l'établissement
     </div>` : ""}
     <div class="p-cta-row">
       <button class="scta ${amFollowing ? "" : "primary"}" style="flex:1" onclick="toggleFollow()">
@@ -1003,6 +1004,19 @@ function viewUserProfile() {
     <div class="section-title"><h2>Ses posts</h2></div>
     <div class="profile-grid">${grid || '<div class="empty">Pas encore de post avec photo</div>'}</div>` : ""}
   `;
+}
+
+/* ---------- icônes topbar/tabbar (statiques) ---------- */
+function paintStaticIcons() {
+  const t = (id, name) => { const el = document.getElementById(id); if (el) el.innerHTML = icon(name, 22); };
+  t("tab-ic-feed", "home");
+  t("tab-ic-challenges", "flag");
+  t("tab-ic-map", "map");
+  t("tab-ic-badges", "medal");
+  const s = document.getElementById("topbar-search-btn");
+  if (s) s.innerHTML = icon("search", 17);
+  const a = document.getElementById("topbar-avatar");
+  if (a) a.textContent = "T";
 }
 
 /* ---------- boot ---------- */
@@ -1025,7 +1039,8 @@ Promise.all([loadPhotos(), loadPlaces()]).then(async () => {
     } catch (e) { console.warn("cloud posts:", e); }
   }
   if (!onboarded) state.view = "onboarding";
-  render();
+  paintStaticIcons();
+render();
 });
 });
 render();
@@ -1118,7 +1133,7 @@ function viewProfile() {
         <button class="chip ${todoAddPub ? "active" : ""}" onclick="todoAddPub=true;renderTodoOnly()">Pour tous</button>
         <button class="chip ${!todoAddPub ? "active" : ""}" onclick="todoAddPub=false;renderTodoOnly()">Privé</button>
       </div>
-      <button class="todo-add-btn" onclick="addTodo()">＋</button>
+      <button class="todo-add-btn" onclick="addTodo()">${icon("plus", 18, "c-white")}</button>
     </div>
 
     <div class="section-title"><h2>Ma semaine</h2><span style="font-size:.8rem;color:var(--ink-faint)">${WEEK_ACTIVITY.reduce((a,b)=>a+b,0)} activités</span></div>
@@ -1166,10 +1181,10 @@ async function viewProfileCloud() {
     <div class="p-name">${esc(prof.display_name)} ${prof.account_type === "pro" ? '<span class="pro-flag">PRO</span>' : ""} <span>@${esc(prof.handle)}</span></div>
     <div class="p-bio">${esc(prof.bio || "")}</div>
     ${prof.account_type === "pro" && prof.claimed_place_id ? `
-    <div class="pro-place-link" onclick="openPlace('${prof.claimed_place_id}')">📍 Voir mon établissement</div>` : ""}
+    <div class="pro-place-link" onclick="openPlace('${prof.claimed_place_id}')">${icon("map-pin", 15)} Voir mon établissement</div>` : ""}
     <div class="p-cta-row">
       <button class="scta primary" style="flex:1" onclick="toast('Édition du profil — bientôt')">Modifier</button>
-      <button class="scta" style="flex:1" onclick="doSignOut()">Se déconnecter</button>
+      <button class="scta" style="flex:1" onclick="doSignOut()">${icon("log-out", 15)} Se déconnecter</button>
     </div>
     <div class="section-title"><h2>Ma to-do list</h2></div>
     <div class="chips">
@@ -1184,10 +1199,10 @@ async function viewProfileCloud() {
         <button class="chip ${todoAddPub ? "active" : ""}" onclick="todoAddPub=true;renderTodoOnly()">Pour tous</button>
         <button class="chip ${!todoAddPub ? "active" : ""}" onclick="todoAddPub=false;renderTodoOnly()">Privé</button>
       </div>
-      <button class="todo-add-btn" onclick="addTodo()">＋</button>
+      <button class="todo-add-btn" onclick="addTodo()">${icon("plus", 18, "c-white")}</button>
     </div>
     <div class="section-title"><h2>Mes posts</h2></div>
-    <div class="profile-grid">${grid || '<div class="empty">Publie ton premier post avec le bouton ＋ du fil !</div>'}</div>`;
+    <div class="profile-grid">${grid || '<div class="empty">Publie ton premier post avec le bouton + du fil !</div>'}</div>`;
 }
 
 function todoHTMLForProfile() {
