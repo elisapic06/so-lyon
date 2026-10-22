@@ -303,3 +303,63 @@ async function markRead(otherId) {
     .update({ read: true })
     .eq("receiver", CLOUD.user.id).eq("sender", otherId).eq("read", false);
 }
+
+/* ---------- notes des lieux ---------- */
+
+async function ratePlace(placeId, stars) {
+  const { error } = await CLOUD.supabase
+    .from("ratings").upsert({ place_id: placeId, user_id: CLOUD.user.id, stars });
+  if (error) throw error;
+}
+
+async function getPlaceRating(placeId) {
+  const { data, error } = await CLOUD.supabase.rpc("place_rating", { p: placeId });
+  if (error) throw error;
+  const r = (data && data[0]) || { avg: 0, count: 0 };
+  return { avg: +r.avg, count: r.count };
+}
+
+async function getMyRating(placeId) {
+  const { data } = await CLOUD.supabase.from("ratings")
+    .select("stars").eq("place_id", placeId).eq("user_id", CLOUD.user.id).maybeSingle();
+  return data ? data.stars : null;
+}
+
+/* ---------- temps réel ---------- */
+
+let chatChannel = null;
+function subscribeChat(otherId, cb) {
+  if (chatChannel) CLOUD.supabase.removeChannel(chatChannel);
+  chatChannel = CLOUD.supabase
+    .channel("chat-" + otherId)
+    .on("postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages",
+        filter: "receiver=eq." + CLOUD.user.id },
+      (payload) => { if (payload.new.sender === otherId) cb(); })
+    .subscribe();
+}
+
+function unsubscribeChat() {
+  if (chatChannel) { CLOUD.supabase.removeChannel(chatChannel); chatChannel = null; }
+}
+
+async function unreadMessagesCount() {
+  const { count } = await CLOUD.supabase.from("messages")
+    .select("*", { count: "exact", head: true })
+    .eq("receiver", CLOUD.user.id).eq("read", false);
+  return count || 0;
+}
+
+/* ---------- modération ---------- */
+
+async function reportContent(targetType, targetId, reason) {
+  const { error } = await CLOUD.supabase
+    .from("reports").insert({ reporter: CLOUD.user.id, target_type: targetType, target_id: targetId, reason });
+  if (error) throw error;
+}
+
+async function deleteMyPost(postId) {
+  const { error } = await CLOUD.supabase
+    .from("posts").delete().eq("id", postId).eq("author", CLOUD.user.id);
+  if (error) throw error;
+}

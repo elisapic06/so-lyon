@@ -208,3 +208,38 @@ $$;
 -- Partage de posts en messagerie : un message peut référencer un post
 alter table public.messages
   add column if not exists shared_post uuid references public.posts(id) on delete set null;
+
+-- ============================================================
+-- Notes des lieux (1-5 étoiles)
+-- ============================================================
+create table if not exists public.ratings (
+  place_id text not null,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  stars int not null check (stars between 1 and 5),
+  created_at timestamptz default now(),
+  primary key (place_id, user_id)
+);
+alter table public.ratings enable row level security;
+create policy "notes visibles" on public.ratings for select using (true);
+create policy "noter" on public.ratings for insert with check (auth.uid() = user_id);
+create policy "changer sa note" on public.ratings for update using (auth.uid() = user_id);
+
+-- moyenne des notes par lieu
+create or replace function public.place_rating(p text)
+returns table (avg numeric, count int) language sql security definer set search_path = public as $$
+  select coalesce(avg(stars), 0), count(*)::int from public.ratings where place_id = p;
+$$;
+
+-- ============================================================
+-- Signalements (modération)
+-- ============================================================
+create table if not exists public.reports (
+  id uuid primary key default gen_random_uuid(),
+  reporter uuid not null references public.profiles(id) on delete cascade,
+  target_type text not null check (target_type in ('post','comment','profile','message')),
+  target_id text not null,
+  reason text not null,
+  created_at timestamptz default now()
+);
+alter table public.reports enable row level security;
+create policy "signaler" on public.reports for insert with check (auth.uid() = reporter);

@@ -134,7 +134,14 @@ function render() {
   v.innerHTML = views[state.view]();
   if (state.view === "map") initMap();
   if (state.view === "messages") loadConversations();
-  if (state.view === "chat") loadChat();
+  if (state.view === "chat") {
+    loadChat();
+    // temps réel : nouveau message -> recharge la conversation
+    if (CLOUD.enabled && CLOUD.user && chatWithId) {
+      subscribeChat(chatWithId, () => loadChat());
+    }
+  }
+  updateMsgBadge();
 }
 
 /* ---------- fil ---------- */
@@ -207,6 +214,10 @@ function viewFeed() {
           <span class="pp-ic">${icon("map-pin", 15, "c-terra")}</span>
           <span class="pp-name">${esc(place.name)}</span>
           <span class="pp-open">${openBadge} <span style="font-size:1rem;color:var(--ink-faint)">›</span></span>
+        </div>` : ""}
+        ${p.mine ? `
+        <div class="post-own-actions">
+          <button class="pa-btn" onclick="confirmDeletePost('${p.id}')">${icon("x", 13)} Supprimer</button>
         </div>` : ""}
         <div class="post-actions">
           <button class="pa-btn ${liked ? "on" : ""}" onclick="toggleLike('${p.id}')">${liked ? icon("heart", 15, "filled") : icon("heart", 15)} ${p.likes + (liked ? 1 : 0)}</button>
@@ -551,15 +562,64 @@ function openPlace(id) {
       <div class="sheet-cta">
         <button class="scta primary" onclick="checkIn('${p.id}')">${icon("check", 15)} J'y suis !</button>
         <button class="scta" onclick="savePlace('${p.id}')">${icon("bookmark", 15)} Enregistrer</button>
+        <button class="scta" onclick="sharePlace('${esc(p.name)}', '${p.id}')">${icon("share", 15)}</button>
       </div>
+      <div id="place-rating" class="rating-box" style="margin-top:16px"></div>
+      <div id="place-photos" style="margin-top:16px"></div>
       <p style="text-align:center;font-size:.7rem;color:var(--ink-faint);margin-top:14px">
         Données OpenStreetMap © les contributeurs d'OSM
       </p>
     </div>`);
   loadPlaceUserPhotos(id);
+  loadPlaceRating(id);
 }
 
 function copyAddr(a) { if (a && a !== "—") toast("Adresse : " + a); }
+
+let myCurrentRating = 0;
+async function loadPlaceRating(placeId) {
+  const box = document.getElementById("place-rating");
+  if (!box) return;
+  if (!CLOUD.enabled) {
+    box.innerHTML = `
+      <div class="rating-head">Note de la communauté</div>
+      <div class="stars-row">${[1,2,3,4,5].map((s) => `<button class="star-btn" onclick="toast('Connecte-toi pour noter')">${icon("star", 20)}</button>`).join("")}</div>
+      <div class="my-rating-note">Les notes s'activeront avec ton compte</div>`;
+    return;
+  }
+  try {
+    const { avg, count } = await getPlaceRating(placeId);
+    myCurrentRating = (await getMyRating(placeId)) || 0;
+    const shown = myCurrentRating || Math.round(avg);
+    box.innerHTML = `
+      <div class="rating-head">Note de la communauté${count ? ` · ${avg.toFixed(1)}/5 (${count} avis)` : ""}</div>
+      <div class="stars-row">
+        ${[1,2,3,4,5].map((s) => `<button class="star-btn ${s <= shown ? "on" : ""}" onclick="rateThisPlace('${placeId}', ${s})">${icon("star", 22, s <= shown ? "star-filled" : "")}</button>`).join("")}
+      </div>
+      <div class="my-rating-note">${myCurrentRating ? "Ta note : " + myCurrentRating + "/5" : "Tape une étoile pour noter"}</div>`;
+  } catch (e) {}
+}
+
+async function rateThisPlace(placeId, stars) {
+  if (!CLOUD.user) { toast("Connecte-toi pour noter"); return; }
+  try {
+    await ratePlace(placeId, stars);
+    toast("Note " + stars + "/5 enregistrée");
+    loadPlaceRating(placeId);
+  } catch (e) { toast("Erreur : " + e.message); }
+}
+
+async function sharePlace(pName, pId) {
+  const url = location.origin + location.pathname + (pId ? "?place=" + pId : "");
+  const text = pName + " — vu sur So Lyon";
+  if (navigator.share) {
+    try { await navigator.share({ title: "So Lyon", text, url }); return; } catch (e) {}
+  }
+  try {
+    await navigator.clipboard.writeText(text + " " + url);
+    toast("Lien copié");
+  } catch (e) { toast(url); }
+}
 
 function checkIn(id) {
   toast("Check-in enregistré ! +10 points 🦁");
@@ -1197,10 +1257,16 @@ function openChat(userId, name) {
   render();
 }
 
+function leaveChat() {
+  unsubscribeChat();
+  chatWithId = null;
+  go("messages");
+}
+
 function viewChat() {
   return `
     <div class="up-head">
-      <button class="up-back" onclick="go('messages')">${icon("chevron-left", 20)}</button>
+      <button class="up-back" onclick="leaveChat()">${icon("chevron-left", 20)}</button>
       <div class="up-handle">${esc(chatWithName)}</div>
     </div>
     <div id="chat-scroll" class="chat-scroll"><div id="chat-msgs" class="chat-msgs"></div></div>
@@ -1258,6 +1324,39 @@ async function sharedPostDetail(postId) {
     if (data && data.place_id) { openPlace(data.place_id); return; }
   } catch (e) {}
   toast("Post partagé");
+}
+
+async function confirmDeletePost(postId) {
+  if (!confirm("Supprimer ce post ?")) return;
+  if (String(postId).startsWith("up")) {
+    // post local
+    USER_POSTS = USER_POSTS.filter((p) => p.id !== postId);
+    saveUserPosts();
+    try { localStorage.removeItem("so-lyon-comments-" + postId); } catch (e) {}
+    state.allPosts = [...USER_POSTS, ...DEMO_POSTS];
+    await hydrateUserPosts(state.allPosts);
+    render();
+    toast("Post supprimé");
+  } else if (CLOUD.enabled && CLOUD.user) {
+    try {
+      await deleteMyPost(postId);
+      state.allPosts = (state.allPosts || []).filter((p) => p.id !== postId);
+      render();
+      toast("Post supprimé");
+    } catch (e) { toast("Erreur : " + e.message); }
+  }
+}
+
+function reportPost(postId) {
+  const reason = prompt("Pourquoi signales-tu ce post ?\n(contenu inapproprié, spam, faux lieu...)");
+  if (!reason) return;
+  if (CLOUD.enabled && CLOUD.user) {
+    reportContent("post", postId, reason)
+      .then(() => toast("Signalement envoyé — merci"))
+      .catch(() => toast("Erreur"));
+  } else {
+    toast("Signalement enregistré");
+  }
 }
 
 /* ---------- profil des autres utilisateurs ---------- */
@@ -1342,6 +1441,20 @@ function viewUserProfile() {
 }
 
 /* ---------- icônes topbar/tabbar (statiques) ---------- */
+async function updateMsgBadge() {
+  const btn = document.getElementById("topbar-msg-btn");
+  if (!btn) return;
+  let unread = 0;
+  if (CLOUD.enabled && CLOUD.user) {
+    try { unread = await unreadMessagesCount(); } catch (e) {}
+  }
+  if (unread > 0) {
+    btn.innerHTML = icon("message", 17) + `<span class="msg-badge">${unread > 9 ? "9+" : unread}</span>`;
+  } else {
+    btn.innerHTML = icon("message", 17);
+  }
+}
+
 function paintStaticIcons() {
   const t = (id, name) => { const el = document.getElementById(id); if (el) el.innerHTML = icon(name, 22); };
   t("tab-ic-feed", "home");
@@ -1378,6 +1491,15 @@ Promise.all([loadPhotos(), loadPlaces()]).then(async () => {
   if (!onboarded) state.view = "onboarding";
   paintStaticIcons();
 render();
+  // deep links : ?place=n123 -> fiche lieu ; ?user=uuid -> profil
+  const qs = new URLSearchParams(location.search);
+  const placeParam = qs.get("place");
+  const userParam = qs.get("user");
+  if (placeParam && placeById(placeParam)) {
+    onboarded = true; state.view = "feed"; render(); openPlace(placeParam);
+  } else if (userParam && CLOUD.enabled) {
+    onboarded = true; state.view = "feed"; render(); openUserProfile(userParam);
+  }
 });
 });
 render();
