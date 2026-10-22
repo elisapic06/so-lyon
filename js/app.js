@@ -136,12 +136,12 @@ function render() {
 /* ---------- fil ---------- */
 function viewFeed() {
   const cats = [
-    ["all", "Tout"], ["mine", "✨ Mes envies"],
-    ["food", "🍽️ Food"], ["sortir", "🍸 Sortir"],
-    ["culture", "🎭 Culture"], ["outdoor", "🌳 Nature"], ["sport", "🏅 Sport"],
+    ["all", "Tout"], ["mine", "Mes envies"],
+    ["food", "Food"], ["sortir", "Sortir"],
+    ["culture", "Culture"], ["outdoor", "Nature"], ["sport", "Sport"],
   ];
   const chips = cats.map(([k, l]) =>
-    `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setFilter('${k}')">${l}</button>`).join("");
+    `<button class="chip ${state.filter === k ? "active" : ""}" onclick="setFilter('${k}')">${k !== "all" && k !== "mine" ? catIcon(k, 13) : ""} ${l}</button>`).join("");
 
   let posts = state.allPosts || DEMO_POSTS;
   if (state.filter === "mine") {
@@ -184,7 +184,7 @@ function viewFeed() {
         <div class="post-user">
           <div class="u-av" ${p.cloud && p.authorId ? `onclick="openUserProfile('${p.authorId}')" style="cursor:pointer"` : ""}>${p.emoji}</div>
           <div ${p.cloud && p.authorId ? `onclick="openUserProfile('${p.authorId}')" style="cursor:pointer"` : ""}>
-            <div class="u-name">${esc(p.user)}${p.mine ? ' <span class="mine-flag">toi</span>' : ""}${p.cloud ? ' <span class="cloud-flag">✔</span>' : ""}</div>
+            <div class="u-name">${esc(p.user)}${p.mine ? ' <span class="mine-flag">toi</span>' : ""}${p.cloud ? ' <span class="cloud-flag"></span>' : ""}</div>
             <div class="u-meta">${esc(p.meta)}</div>
           </div>
         </div>
@@ -198,8 +198,8 @@ function viewFeed() {
         </div>` : ""}
         <div class="post-actions">
           <button class="pa-btn ${liked ? "on" : ""}" onclick="toggleLike('${p.id}')">${liked ? icon("heart", 15, "filled") : icon("heart", 15)} ${p.likes + (liked ? 1 : 0)}</button>
-          <button class="pa-btn" onclick="toast('Commentaires bientôt disponibles 💬')">${icon("message", 15)} ${p.comments}</button>
-          <button class="pa-btn" onclick="toast('Partagé ✨')">${icon("share", 15)} Partager</button>
+          <button class="pa-btn" onclick="toast('Commentaires bientôt disponibles')">${icon("message", 15)} ${p.comments}</button>
+          <button class="pa-btn" onclick="toast('Partagé')">${icon("share", 15)} Partager</button>
         </div>
       </div>
     </article>`;
@@ -208,7 +208,7 @@ function viewFeed() {
   return `
     <div class="view-head"><h1>Le fil de Lyon</h1><p>Les bons plans partagés par la communauté</p></div>
     <div class="chips">${chips}</div>
-    ${cards || `<div class="empty">Pas encore de post dans cette catégorie 🌱</div>`}
+    ${cards || `<div class="empty">Pas encore de post dans cette catégorie </div>`}
     <button class="fab" onclick="openCreatePost()" aria-label="Créer">${icon("plus", 22, "c-white")}</button>`;
 }
 
@@ -259,7 +259,7 @@ function toggleJoin(id) {
 function showChallenge(id) {
   const c = CHALLENGES.find((x) => x.id === id);
   openSheet(`
-    <div class="sheet-hero" style="background:var(--terra-soft)">🏆</div>
+    <div class="sheet-hero" style="background:var(--terra-soft)">${icon("flag", 40, "c-soft")}</div>
     <div class="sheet-body">
       <div class="s-cat">${c.cat} · ${c.n} participants</div>
       <h2>${esc(c.title)}</h2>
@@ -274,7 +274,7 @@ function showChallenge(id) {
 function openCreateChallenge() {
   openSheet(`
     <div class="sheet-body" style="padding-top:12px">
-      <h2 style="font-size:1.2rem">Créer un défi 🏁</h2>
+      <h2 style="font-size:1.2rem">Créer un défi</h2>
       <p style="color:var(--ink-faint);font-size:.85rem;margin-top:3px">Ta communauté te suit dans 30 secondes.</p>
       <div style="margin-top:16px">
         <div class="field"><label>Titre du défi</label><input id="cc-title" placeholder="Ex : Tour des glacier de la presqu'île"></div>
@@ -298,7 +298,7 @@ function submitChallenge() {
   closeSheet();
   state.view = "challenges";
   render();
-  toast("Défi publié ! 🎉");
+  toast("Défi publié !");
 }
 
 /* ---------- badges ---------- */
@@ -540,11 +540,11 @@ function openPlace(id) {
 function copyAddr(a) { if (a && a !== "—") toast("Adresse : " + a); }
 
 function checkIn(id) {
-  toast("Check-in enregistré ! +10 points 🦁");
+  toast("Check-in enregistré ! +10 points");
   closeSheet();
 }
 function savePlace(id) {
-  toast("Lieu enregistré dans ta collection 🔖");
+  toast("Lieu enregistré dans ta collection ");
 }
 
 /* ---------- recherche ---------- */
@@ -580,7 +580,7 @@ function runSearch(q) {
       </div>
       <span style="color:var(--ink-faint)">›</span>
     </div>`;
-  }).join("") : `<div class="empty">Aucun résultat pour « ${esc(q)} » 😕</div>`;
+  }).join("") : `<div class="empty">Aucun résultat pour « ${esc(q)} » </div>`;
 }
 
 function openPlaceById(id) {
@@ -675,7 +675,7 @@ function openCreatePost() {
   openSheet(`
     <div class="sheet-grab"></div>
     <div class="sheet-body" style="padding-bottom:20px">
-      <h2 style="font-size:1.2rem">Nouveau post 📸</h2>
+      <h2 style="font-size:1.2rem">Nouveau post </h2>
       <p style="color:var(--ink-faint);font-size:.85rem;margin-top:3px">Partage ton bon plan avec la communauté</p>
 
       <label class="photo-picker" id="photo-picker">
@@ -706,7 +706,7 @@ function onPostPhoto(input) {
   const img = document.getElementById("photo-preview");
   img.src = newPostPhotoURL;
   img.style.display = "block";
-  document.getElementById("photo-picker-label").textContent = "✓ Photo ajoutée";
+  document.getElementById("photo-picker-label").textContent = " Photo ajoutée";
 }
 
 function searchPostPlace(q) {
@@ -717,7 +717,7 @@ function searchPostPlace(q) {
   const res = PLACES.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 8);
   box.innerHTML = res.map((p) => `
     <div class="place-pick" onclick="pickPostPlace('${p.id}')">
-      <span>${CAT_INFO[p.cat] ? CAT_INFO[p.cat].icon : "📍"}</span>
+      <span>${catIcon(p.cat, 16)}</span>
       <div>
         <div style="font-weight:700;font-size:.9rem">${esc(p.name)}</div>
         <div style="font-size:.75rem;color:var(--ink-faint)">${esc(p.street || AMENITY_LABEL[p.amenity] || "")}</div>
@@ -735,7 +735,7 @@ function pickPostPlace(id) {
 
 async function submitPost() {
   const text = (document.getElementById("post-text").value || "").trim();
-  if (!selectedPlaceId && !text) { toast("Ajoute un lieu ou un texte 😉"); return; }
+  if (!selectedPlaceId && !text) { toast("Ajoute un lieu ou un texte "); return; }
 
   // mode cloud connecté → publication partagée
   if (CLOUD.enabled && CLOUD.user) {
@@ -749,7 +749,7 @@ async function submitPost() {
       const cloudPosts = await fetchCloudPosts();
       state.allPosts = [...cloudPosts, ...USER_POSTS, ...DEMO_POSTS];
       render();
-      toast("Publié pour toute la communauté ! 🎉");
+      toast("Publié pour toute la communauté !");
       return;
     } catch (e) {
       toast("Erreur cloud : " + e.message);
@@ -774,7 +774,7 @@ async function submitPost() {
   state.view = "feed";
   state.allPosts = [...USER_POSTS, ...DEMO_POSTS];
   render();
-  toast("Post publié ! 🎉");
+  toast("Post publié !");
 }
 
 function hydrateUserPosts(list) {
@@ -815,7 +815,7 @@ function viewOnboarding() {
           <button class="interest-tile ${myInterests.includes(i.key) ? "picked" : ""}" onclick="toggleInterest('${i.key}')">
             <span class="it-icon">${icon(i.ic, 24)}</span>
             <span>${i.label}</span>
-            <span class="it-check">${myInterests.includes(i.key) ? "✓" : ""}</span>
+            <span class="it-check">${myInterests.includes(i.key) ? " " : ""}</span>
           </button>`).join("")}
       </div>
       <button class="scta primary" style="width:100%;margin-top:18px" onclick="finishOnboarding()">
@@ -837,7 +837,7 @@ function finishOnboarding() {
   onboarded = true;
   state.view = "feed";
   render();
-  toast("Bienvenue à Lyon ! 🦁");
+  toast("Bienvenue à Lyon !");
 }
 
 /* ---------- auth (connexion / inscription) ---------- */
@@ -887,7 +887,7 @@ function searchProPlace(q) {
   const res = PLACES.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 8);
   box.innerHTML = res.map((p) => `
     <div class="place-pick" onclick="pickProPlace('${p.id}')">
-      <span>${CAT_INFO[p.cat] ? CAT_INFO[p.cat].icon : "📍"}</span>
+      <span>${catIcon(p.cat, 16)}</span>
       <div>
         <div style="font-weight:700;font-size:.9rem">${esc(p.name)}</div>
         <div style="font-size:.75rem;color:var(--ink-faint)">${esc(p.street || AMENITY_LABEL[p.amenity] || "")}</div>
@@ -908,11 +908,11 @@ async function doSignUp() {
   const pass = document.getElementById("auth-pass").value;
   const handle = document.getElementById("auth-handle").value.trim().toLowerCase().replace(/[^a-z0-9._]/g, "");
   if (!email || pass.length < 6 || !handle) { toast("Remplis tout (mot de passe : 6 caractères min.)"); return; }
-  if (!CLOUD.enabled) { toast("Mode local — le cloud arrive bientôt 😉"); return; }
-  if (authMode === "pro" && !proPlaceId) { toast("Recherche et sélectionne ton établissement 🏪"); return; }
+  if (!CLOUD.enabled) { toast("Mode local — le cloud arrive bientôt "); return; }
+  if (authMode === "pro" && !proPlaceId) { toast("Recherche et sélectionne ton établissement "); return; }
   try {
     await signUp(email, pass, handle, handle, authMode, proPlaceId);
-    toast("Compte " + (authMode === "pro" ? "pro " : "") + "créé ! Vérifie tes emails si demandé 📬");
+    toast("Compte " + (authMode === "pro" ? "pro " : "") + "créé ! Vérifie tes emails si demandé ");
     state.view = "feed"; render();
   } catch (e) { toast("Erreur : " + e.message); }
 }
@@ -921,10 +921,10 @@ async function doSignIn() {
   const email = document.getElementById("auth-email").value.trim();
   const pass = document.getElementById("auth-pass").value;
   if (!email || !pass) { toast("Email + mot de passe requis"); return; }
-  if (!CLOUD.enabled) { toast("Mode local — le cloud arrive bientôt 😉"); return; }
+  if (!CLOUD.enabled) { toast("Mode local — le cloud arrive bientôt "); return; }
   try {
     await signIn(email, pass);
-    toast("Bon retour 🦁");
+    toast("Bon retour");
     state.view = "feed"; render();
   } catch (e) { toast("Erreur : " + e.message); }
 }
@@ -937,7 +937,7 @@ let viewedFollowers = 0;
 let amFollowing = false;
 
 async function openUserProfile(userId) {
-  if (!CLOUD.enabled) { toast("Les profils arrivent avec le mode cloud 😉"); return; }
+  if (!CLOUD.enabled) { toast("Les profils arrivent avec le mode cloud "); return; }
   if (CLOUD.user && userId === CLOUD.user.id) { go("profile"); return; }
   viewedUserId = userId;
   state.view = "userprofile";
@@ -963,7 +963,7 @@ async function toggleFollow() {
   if (!CLOUD.user) { toast("Connecte-toi pour suivre quelqu'un"); return; }
   try {
     if (amFollowing) { await unfollowUser(viewedUserId); amFollowing = false; viewedFollowers--; toast("Plus suivi"); }
-    else { await followUser(viewedUserId); amFollowing = true; viewedFollowers++; toast("Suivi ! Ses posts arriveront dans ton fil 🎉"); }
+    else { await followUser(viewedUserId); amFollowing = true; viewedFollowers++; toast("Suivi ! Ses posts arriveront dans ton fil"); }
     render();
   } catch (e) { toast("Erreur : " + e.message); }
 }
@@ -982,7 +982,7 @@ function viewUserProfile() {
       <div class="up-handle">@${esc(viewedProfile.handle)}${viewedProfile.account_type === "pro" ? ' <span class="pro-flag">PRO</span>' : ""}</div>
     </div>
     <div class="profile-head">
-      <div class="p-avatar">${viewedProfile.avatar_emoji || "🦁"}</div>
+      <div class="p-avatar">${esc((viewedProfile.display_name || "?")[0])}</div>
       <div class="p-stats">
         <div><b>${viewedPosts.length}</b><span>posts</span></div>
         <div><b>${viewedFollowers}</b><span>followers</span></div>
@@ -997,7 +997,7 @@ function viewUserProfile() {
     </div>` : ""}
     <div class="p-cta-row">
       <button class="scta ${amFollowing ? "" : "primary"}" style="flex:1" onclick="toggleFollow()">
-        ${amFollowing ? "✓ Suivi" : "+ Suivre"}
+        ${amFollowing ? " Suivi" : "+ Suivre"}
       </button>
     </div>
     ${viewedProfile.bio || viewedPosts.length ? `
@@ -1050,7 +1050,7 @@ render();
 const PROFILE = {
   name: "Toi",
   handle: "@moi.lyon",
-  bio: "Chasseuse de bons plans à Lyon 🦁 | food · culture · sport",
+  bio: "Bons plans food, culture et sport à Lyon",
   followers: 142,
   following: 89,
   points: 1240,
@@ -1099,15 +1099,15 @@ function viewProfile() {
   const shown = TODO_IDEAS.filter((t) => todoView === "all" || (todoView === "pub" ? t.pub : !t.pub));
   const todoHTML = shown.map((t) => `
     <div class="todo-row ${t.pub ? "" : "private"}" onclick="toggleTodo('${t.id}')">
-      <span class="todo-check ${t.done ? "done" : ""}">${t.done ? "✓" : ""}</span>
+      <span class="todo-check ${t.done ? "done" : ""}">${t.done ? " " : ""}</span>
       <span class="todo-txt ${t.done ? "done" : ""}">${esc(t.txt)}</span>
-      <span class="todo-del" onclick="event.stopPropagation(); delTodo('${t.id}')">✕</span>
+      <span class="todo-del" onclick="event.stopPropagation(); delTodo('${t.id}')"> </span>
       ${t.pub ? "" : `<span class="todo-dot" title="Privé"></span>`}
     </div>`).join("");
 
   return `
     <div class="profile-head">
-      <div class="p-avatar">🦁</div>
+      <div class="p-avatar">T</div>
       <div class="p-stats">
         <div><b>${PROFILE.points}</b><span>points</span></div>
         <div><b>${PROFILE.followers}</b><span>followers</span></div>
@@ -1117,7 +1117,7 @@ function viewProfile() {
     <div class="p-name">${esc(PROFILE.name)} <span>${esc(PROFILE.handle)}</span></div>
     <div class="p-bio">${esc(PROFILE.bio)}</div>
     <div class="p-cta-row">
-      <button class="scta primary" style="flex:1" onclick="toast('Edition du profil — avec les comptes réels 😉')">Modifier le profil</button>
+      <button class="scta primary" style="flex:1" onclick="toast('Edition du profil — avec les comptes réels ')">Modifier le profil</button>
     </div>
 
     <div class="section-title"><h2>Ma to-do list</h2><span style="font-size:.8rem;color:var(--ink-faint)">${TODO_IDEAS.filter(t=>!t.done).length} en attente</span></div>
@@ -1171,7 +1171,7 @@ async function viewProfileCloud() {
 
   return `
     <div class="profile-head">
-      <div class="p-avatar">${prof.avatar_emoji || "🦁"}</div>
+      <div class="p-avatar">${esc((prof.display_name || "?")[0])}</div>
       <div class="p-stats">
         <div><b>${posts.length}</b><span>posts</span></div>
         <div><b>${followers}</b><span>followers</span></div>
@@ -1209,9 +1209,9 @@ function todoHTMLForProfile() {
   const shown = TODO_IDEAS.filter((t) => todoView === "all" || (todoView === "pub" ? t.pub : !t.pub));
   return shown.map((t) => `
     <div class="todo-row ${t.pub ? "" : "private"}" onclick="toggleTodo('${t.id}')">
-      <span class="todo-check ${t.done ? "done" : ""}">${t.done ? "✓" : ""}</span>
+      <span class="todo-check ${t.done ? "done" : ""}">${t.done ? " " : ""}</span>
       <span class="todo-txt ${t.done ? "done" : ""}">${esc(t.txt)}</span>
-      <span class="todo-del" onclick="event.stopPropagation(); delTodo('${t.id}')">✕</span>
+      <span class="todo-del" onclick="event.stopPropagation(); delTodo('${t.id}')"> </span>
       ${t.pub ? "" : '<span class="todo-dot" title="Privé"></span>'}
     </div>`).join("") || '<div class="empty" style="padding:18px">Rien ici — ajoute une idée !</div>';
 }
@@ -1219,7 +1219,7 @@ function todoHTMLForProfile() {
 async function doSignOut() {
   try {
     await signOutUser();
-    toast("À bientôt 👋");
+    toast("À bientôt ");
     state.view = "feed";
     state.allPosts = [...USER_POSTS, ...DEMO_POSTS];
     render();
@@ -1235,7 +1235,7 @@ function delTodo(id) {
 function addTodo() {
   const inp = document.getElementById("todo-input");
   const txt = (inp.value || "").trim();
-  if (!txt) { toast("Écris d'abord ton idée 😉"); return; }
+  if (!txt) { toast("Écris d'abord ton idée "); return; }
   TODO_IDEAS.unshift({ id: "t" + Date.now(), txt, done: false, pub: todoAddPub });
   saveTodos();
   render();
