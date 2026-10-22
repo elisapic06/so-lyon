@@ -119,7 +119,7 @@ async function fetchCloudPosts(limit = 50) {
   return data.map((p) => ({
     id: p.id,
     user: p.profiles?.display_name || "?",
-    emoji: p.profiles?.avatar_emoji || " ",
+    emoji: p.profiles?.avatar_emoji || "🦁",
     handle: p.profiles?.handle,
     meta: timeAgo(p.created_at),
     text: p.text,
