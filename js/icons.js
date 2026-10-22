@@ -70,3 +70,6 @@ ICONS["compass"] = '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-
 ICONS["plate"] = '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/>';
 ICONS["cocktail"] = '<path d="M4 4h16l-8 9Z"/><path d="M12 13v6M8 21h8M15 6l4-2"/>';
 ICONS["theatre"] = '<path d="M3 5h18v10H3Z"/><path d="M3 5a9 4 0 0 0 18 0"/><path d="M9 19c1 1.5 5 1.5 6 0"/><path d="M9 9.5v3M15 9.5v3"/>';
+
+/* assiette avec couverts */
+ICONS["plate-cutlery"] = '<circle cx="12" cy="12" r="7"/><path d="M4 3v6c0 1.5 1 2.5 2 2.5V3"/><path d="M6 11.5V21"/><path d="M20 3c-1.5 1-2 3-2 5s.7 2.5 2 2.5V3"/><path d="M18 10.5V21"/>';
