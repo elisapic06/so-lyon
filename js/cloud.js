@@ -259,3 +259,39 @@ async function updateProfile(fields) {
   if (error) throw error;
   Object.assign(CLOUD.profile, fields);
 }
+
+/* ---------- messagerie privée ---------- */
+
+async function myConversations() {
+  const { data, error } = await CLOUD.supabase.rpc("my_conversations");
+  if (error) throw error;
+  return data || [];
+}
+
+async function fetchMessages(otherId) {
+  const { data, error } = await CLOUD.supabase
+    .from("messages")
+    .select("id, sender, txt, created_at, read")
+    .or(`and(sender.eq.${CLOUD.user.id},receiver.eq.${otherId}),and(sender.eq.${otherId},receiver.eq.${CLOUD.user.id})`)
+    .order("created_at", { ascending: true })
+    .limit(200);
+  if (error) throw error;
+  return (data || []).map((m) => ({
+    id: m.id,
+    mine: m.sender === CLOUD.user.id,
+    txt: m.txt,
+    when: timeAgo(m.created_at),
+  }));
+}
+
+async function sendMessage(otherId, txt) {
+  const { error } = await CLOUD.supabase
+    .from("messages").insert({ sender: CLOUD.user.id, receiver: otherId, txt });
+  if (error) throw error;
+}
+
+async function markRead(otherId) {
+  await CLOUD.supabase.from("messages")
+    .update({ read: true })
+    .eq("receiver", CLOUD.user.id).eq("sender", otherId).eq("read", false);
+}

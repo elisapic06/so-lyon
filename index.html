@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon-32.png">
 <title>So Lyon — food & activités à Lyon</title>
-<link rel="stylesheet" href="css/style.css?v=25">
+<link rel="stylesheet" href="css/style.css?v=26">
 </head>
 <body>
 <div id="app">
@@ -19,6 +19,7 @@
     <div class="topbar-inner">
       <div class="logo" onclick="go('feed')">so<span>lyon</span></div>
       <div class="topbar-actions">
+        <button class="icon-btn" onclick="go('messages')" aria-label="Messages" id="topbar-msg-btn"></button>
         <button class="icon-btn" onclick="openSearch()" aria-label="Rechercher" id="topbar-search-btn"></button>
         <div class="avatar" onclick="go('profile')" id="topbar-avatar"></div>
       </div>
@@ -38,9 +39,9 @@
 <div id="sheet-backdrop" class="sheet-backdrop" onclick="closeSheet()"></div>
 <div id="sheet" class="sheet"></div>
 
-<script src="js/icons.js?v=25"></script>
-<script src="js/cloud.js?v=25"></script>
-<script src="js/data.js?v=25"></script>
-<script src="js/app.js?v=25"></script>
+<script src="js/icons.js?v=26"></script>
+<script src="js/cloud.js?v=26"></script>
+<script src="js/data.js?v=26"></script>
+<script src="js/app.js?v=26"></script>
 </body>
 </html>

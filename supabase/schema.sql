@@ -164,3 +164,43 @@ alter table public.comments enable row level security;
 create policy "commentaires lisibles" on public.comments for select using (true);
 create policy "commenter" on public.comments for insert with check (auth.uid() = user_id);
 create policy "supprimer son commentaire" on public.comments for delete using (auth.uid() = user_id);
+
+-- ============================================================
+-- Messagerie privée
+-- ============================================================
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  sender uuid not null references public.profiles(id) on delete cascade,
+  receiver uuid not null references public.profiles(id) on delete cascade,
+  txt text not null,
+  read boolean default false,
+  created_at timestamptz default now()
+);
+alter table public.messages enable row level security;
+-- on ne voit que les messages où l'on est expéditeur ou destinataire
+create policy "messages visibles par les parties" on public.messages
+  for select using (auth.uid() = sender or auth.uid() = receiver);
+create policy "envoyer message" on public.messages
+  for insert with check (auth.uid() = sender);
+create policy "marquer lu" on public.messages
+  for update using (auth.uid() = receiver);
+
+-- conversations d'un utilisateur (vue pratique)
+create or replace function public.my_conversations()
+returns table (
+  other_id uuid, other_handle text, other_name text, other_emoji text,
+  last_txt text, last_at timestamptz, unread int
+) language sql security definer set search_path = public as $$
+  select
+    case when m.sender = auth.uid() then m.receiver else m.sender end as other_id,
+    p.handle, p.display_name, p.avatar_emoji,
+    (array_agg(m.txt order by m.created_at desc))[1] as last_txt,
+    max(m.created_at) as last_at,
+    count(*) filter (where m.receiver = auth.uid() and m.read = false) as unread
+  from public.messages m
+  join public.profiles p
+    on p.id = case when m.sender = auth.uid() then m.receiver else m.sender end
+  where m.sender = auth.uid() or m.receiver = auth.uid()
+  group by other_id, p.handle, p.display_name, p.avatar_emoji
+  order by max(m.created_at) desc;
+$$;

@@ -130,9 +130,11 @@ function go(view) {
 
 function render() {
   const v = document.getElementById("view");
-  const views = { feed: viewFeed, challenges: viewChallenges, map: viewMap, badges: viewBadges, profile: viewProfile, auth: viewAuth, onboarding: viewOnboarding, userprofile: viewUserProfile };
+  const views = { feed: viewFeed, challenges: viewChallenges, map: viewMap, badges: viewBadges, profile: viewProfile, auth: viewAuth, onboarding: viewOnboarding, userprofile: viewUserProfile, messages: viewMessages, chat: viewChat };
   v.innerHTML = views[state.view]();
   if (state.view === "map") initMap();
+  if (state.view === "messages") loadConversations();
+  if (state.view === "chat") loadChat();
 }
 
 /* ---------- fil ---------- */
@@ -1084,6 +1086,100 @@ async function doSignIn() {
   } catch (e) { toast("Erreur : " + e.message); }
 }
 
+/* ---------- messagerie privée ---------- */
+let chatWithId = null;
+let chatWithName = "";
+let chatTimer = null;
+
+function viewMessages() {
+  return `
+    <div class="up-head">
+      <button class="up-back" onclick="go('feed')">${icon("chevron-left", 20)}</button>
+      <div class="up-handle">Messages</div>
+    </div>
+    <div id="conversations-list"><div class="empty" style="padding:30px">Chargement…</div></div>`;
+}
+
+async function loadConversations() {
+  const box = document.getElementById("conversations-list");
+  if (!box) return;
+  if (!CLOUD.enabled || !CLOUD.user) {
+    box.innerHTML = '<div class="empty" style="padding:30px">La messagerie s\'activera avec ton compte.<br>Va sur ton profil pour te connecter.</div>';
+    return;
+  }
+  try {
+    const convs = await myConversations();
+    if (!convs.length) {
+      box.innerHTML = '<div class="empty" style="padding:30px">Pas encore de conversation.<br>Ouvre le profil de quelqu\'un et écris-lui !</div>';
+      return;
+    }
+    box.innerHTML = convs.map((c) => `
+      <div class="conv-row" onclick="openChat('${c.other_id}', '${esc(c.other_name)}')">
+        <span class="c-av">${esc((c.other_name || "?")[0])}</span>
+        <div class="conv-main">
+          <div class="conv-name">${esc(c.other_name)} <span class="conv-handle">@${esc(c.other_handle)}</span></div>
+          <div class="conv-last">${esc((c.last_txt || "").slice(0, 42))}</div>
+        </div>
+        ${c.unread ? `<span class="conv-unread">${c.unread}</span>` : ""}
+      </div>`).join("");
+  } catch (e) {
+    box.innerHTML = '<div class="empty" style="padding:30px">Erreur de chargement</div>';
+  }
+}
+
+function openChat(userId, name) {
+  chatWithId = userId;
+  chatWithName = name;
+  state.view = "chat";
+  render();
+}
+
+function viewChat() {
+  return `
+    <div class="up-head">
+      <button class="up-back" onclick="go('messages')">${icon("chevron-left", 20)}</button>
+      <div class="up-handle">${esc(chatWithName)}</div>
+    </div>
+    <div id="chat-scroll" class="chat-scroll"><div id="chat-msgs" class="chat-msgs"></div></div>
+    <div class="chat-input-row">
+      <input id="chat-input" placeholder="Message…" onkeydown="if(event.key==='Enter')sendMyMessage()">
+      <button class="todo-add-btn" onclick="sendMyMessage()">${icon("send", 17, "c-white")}</button>
+    </div>`;
+}
+
+async function loadChat() {
+  const box = document.getElementById("chat-msgs");
+  if (!box || !chatWithId) return;
+  if (!CLOUD.enabled || !CLOUD.user) {
+    box.innerHTML = '<div class="empty" style="padding:30px">Connecte-toi pour discuter.</div>';
+    return;
+  }
+  try {
+    const msgs = await fetchMessages(chatWithId);
+    box.innerHTML = msgs.map((m) => `
+      <div class="msg ${m.mine ? "mine" : ""}">
+        <div class="msg-bubble">${esc(m.txt)}</div>
+        <div class="msg-when">${esc(m.when)}</div>
+      </div>`).join("");
+    await markRead(chatWithId);
+    const sc = document.getElementById("chat-scroll");
+    if (sc) sc.scrollTop = sc.scrollHeight;
+  } catch (e) {
+    box.innerHTML = '<div class="empty">Erreur de chargement</div>';
+  }
+}
+
+async function sendMyMessage() {
+  const inp = document.getElementById("chat-input");
+  const txt = (inp.value || "").trim();
+  if (!txt || !chatWithId) return;
+  inp.value = "";
+  try {
+    await sendMessage(chatWithId, txt);
+    loadChat();
+  } catch (e) { toast("Erreur : " + e.message); }
+}
+
 /* ---------- profil des autres utilisateurs ---------- */
 let viewedUserId = null;
 let viewedProfile = null;
@@ -1154,6 +1250,10 @@ function viewUserProfile() {
       <button class="scta ${amFollowing ? "" : "primary"}" style="flex:1" onclick="toggleFollow()">
         ${amFollowing ? "✓ Suivi" : "+ Suivre"}
       </button>
+      ${CLOUD.enabled && CLOUD.user ? `
+      <button class="scta" style="flex:1" onclick="openChat('${viewedUserId}', '${esc(viewedProfile.display_name)}')">
+        ${icon("message", 15)} Message
+      </button>` : ""}
     </div>
     ${viewedProfile.bio || viewedPosts.length ? `
     <div class="section-title"><h2>Ses posts</h2></div>
@@ -1170,6 +1270,8 @@ function paintStaticIcons() {
   t("tab-ic-badges", "medal");
   const s = document.getElementById("topbar-search-btn");
   if (s) s.innerHTML = icon("search", 17);
+  const m = document.getElementById("topbar-msg-btn");
+  if (m) m.innerHTML = icon("message", 17);
   const a = document.getElementById("topbar-avatar");
   if (a) a.textContent = "T";
 }
