@@ -553,9 +553,9 @@ function openSearch() {
     <div class="sheet-grab"></div>
     <div class="sheet-body" style="padding-bottom:20px">
       <div class="search-box">
-        <input id="search-input" placeholder="Rechercher un lieu à Lyon…" autofocus oninput="runSearch(this.value)">
+        <input id="search-input" placeholder="Lieux, comptes, défis…" autofocus oninput="runSearch(this.value)">
       </div>
-      <div id="search-results"><div class="empty">Tape un nom : restaurant, parc, musée…</div></div>
+      <div id="search-results"><div class="empty">Lieux, comptes, défis — commence à taper</div></div>
     </div>`);
   setTimeout(() => document.getElementById("search-input")?.focus(), 250);
 }
@@ -563,24 +563,70 @@ function openSearch() {
 function runSearch(q) {
   const box = document.getElementById("search-results");
   q = q.trim().toLowerCase();
-  if (q.length < 2) { box.innerHTML = `<div class="empty">Tape un nom : restaurant, parc, musée…</div>`; return; }
-  const res = PLACES.filter((p) =>
+  if (q.length < 2) { box.innerHTML = `<div class="empty">Lieux, comptes, défis — tape au moins 2 lettres</div>`; return; }
+
+  // lieux
+  const places = PLACES.filter((p) =>
     p.name.toLowerCase().includes(q) ||
     (p.cuisine && p.cuisine.toLowerCase().includes(q)) ||
     (p.amenity && p.amenity.toLowerCase().includes(q))
-  ).slice(0, 25);
-  box.innerHTML = res.length ? res.map((p) => {
-    const info = CAT_INFO[p.cat] || CAT_INFO.other;
+  ).slice(0, 12);
+  const placeHTML = places.map((p) => {
     const sub = [AMENITY_LABEL[p.amenity] || p.amenity, p.street].filter(Boolean).join(" · ");
     return `<div class="place-row" onclick="closeSheet(); openPlaceById('${p.id}')">
-      <span class="pr-ic">${catIcon(place ? place.cat : "other", 34)}</span>
+      <span class="pr-ic">${catIcon(p.cat, 16)}</span>
       <div class="pr-main">
         <div class="pr-name">${esc(p.name)}</div>
         <div class="pr-sub">${esc(sub)}</div>
       </div>
       <span style="color:var(--ink-faint)">›</span>
     </div>`;
-  }).join("") : `<div class="empty">Aucun résultat pour « ${esc(q)} » 😕</div>`;
+  }).join("");
+
+  // comptes (mode cloud)
+  let accHTML = "";
+  if (CLOUD.enabled) {
+    CLOUD.supabase.from("profiles").select("id, handle, display_name, account_type")
+      .ilike("handle", `%${q}%`).limit(6).then(({ data }) => {
+        if (data && data.length && document.getElementById("search-results")) {
+          const html = data.map((u) => `
+            <div class="place-row" onclick="closeSheet(); setTimeout(()=>openUserProfile('${u.id}'),100)">
+              <span class="pr-ic">${icon("user", 18, "c-terra")}</span>
+              <div class="pr-main">
+                <div class="pr-name">@${esc(u.handle)}${u.account_type === "pro" ? ' <span class="pro-flag">PRO</span>' : ""}</div>
+                <div class="pr-sub">${esc(u.display_name)}</div>
+              </div>
+              <span style="color:var(--ink-faint)">›</span>
+            </div>`).join("");
+          renderSearchResults(box, q, placeHTML, html, chalSearchHTML(q));
+        }
+      });
+  }
+
+  renderSearchResults(box, q, placeHTML, accHTML, chalSearchHTML(q));
+}
+
+function chalSearchHTML(q) {
+  const chals = CHALLENGES.filter((c) =>
+    c.title.toLowerCase().includes(q) || c.cat.toLowerCase().includes(q)
+  ).slice(0, 5);
+  return chals.map((c) => `
+    <div class="place-row" onclick="closeSheet(); setTimeout(()=>{showChallenge('${c.id}')},100)">
+      <span class="pr-ic">${icon("flag", 18, "c-terra")}</span>
+      <div class="pr-main">
+        <div class="pr-name">${esc(c.title)}</div>
+        <div class="pr-sub">Défi ${esc(c.cat)} · ${c.n} participants</div>
+      </div>
+      <span style="color:var(--ink-faint)">›</span>
+    </div>`).join("");
+}
+
+function renderSearchResults(box, q, placeHTML, accHTML, chalHTML) {
+  const sections = [];
+  if (placeHTML) sections.push(`<div class="search-section-title">Lieux</div>${placeHTML}`);
+  if (accHTML) sections.push(`<div class="search-section-title">Comptes</div>${accHTML}`);
+  if (chalHTML) sections.push(`<div class="search-section-title">Défis</div>${chalHTML}`);
+  box.innerHTML = sections.length ? sections.join("") : `<div class="empty">Aucun résultat pour « ${esc(q)} »</div>`;
 }
 
 function openPlaceById(id) {

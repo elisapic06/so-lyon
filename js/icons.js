@@ -53,7 +53,7 @@ function icon(name, size = 18, cls = "") {
 }
 
 /* icône par catégorie (fiches, filtres, épingles) */
-const CAT_ICON = { food: "food", sortir: "drink", culture: "culture", outdoor: "nature", sport: "sport", other: "map-pin" };
+const CAT_ICON = { food: "plate-cutlery", sortir: "cocktail", culture: "theatre", outdoor: "tree", sport: "dumbbell", other: "map-pin" };
 function catIcon(cat, size = 18, cls = "") { return icon(CAT_ICON[cat] || "map-pin", size, cls); }
 
 /* badges : pictos dédiés, parlants */
