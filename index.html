@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="So Lyon">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-32.png">
+<title>So Lyon — food & activités à Lyon</title>
+<link rel="stylesheet" href="css/style.css?v=29">
+<style>
+#splash {
+  position: fixed; inset: 0; z-index: 9999; background: #ce6a4a;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity .4s ease;
+}
+#splash.hide { opacity: 0; pointer-events: none; }
+.splash-inner { text-align: center; }
+.splash-logo { font-size: 2.8rem; font-weight: 800; letter-spacing: -.04em; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.splash-logo span { color: #f4eada; font-weight: 300; font-style: italic; }
+.splash-city { color: rgba(255,255,255,.75); font-size: .85rem; letter-spacing: .45em; text-transform: uppercase; margin-top: 6px; font-weight: 600; }
+#ios-install-tip {
+  position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 8000;
+}
+.iit-inner {
+  background: #2b2118; color: #faf4ec; border-radius: 16px; padding: 14px 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.3); font-size: .85rem; line-height: 1.45;
+}
+.iit-inner b { display: block; margin-bottom: 3px; }
+.iit-share {
+  display: inline-block; width: 15px; height: 15px; vertical-align: -3px; margin: 0 2px;
+  background: #faf4ec;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3v13M7 8l5-5 5 5M5 13v6h14v-6'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3v13M7 8l5-5 5 5M5 13v6h14v-6'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.iit-close {
+  margin-top: 8px; background: none; border: none; color: #ce6a4a; font-weight: 700; font-size: .8rem; cursor: pointer; padding: 0;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo" onclick="go('feed')">so<span>lyon</span></div>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="go('messages')" aria-label="Messages" id="topbar-msg-btn"></button>
+        <button class="icon-btn" onclick="openSearch()" aria-label="Rechercher" id="topbar-search-btn"></button>
+        <div class="avatar" onclick="go('profile')" id="topbar-avatar"></div>
+      </div>
+    </div>
+  </header>
+
+  <main id="view"></main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-tab="feed" onclick="go('feed')"><span id="tab-ic-feed"></span>Fil</button>
+    <button class="tab" data-tab="challenges" onclick="go('challenges')"><span id="tab-ic-challenges"></span>Défis</button>
+    <button class="tab" data-tab="map" onclick="go('map')"><span id="tab-ic-map"></span>Carte</button>
+    <button class="tab" data-tab="badges" onclick="go('badges')"><span id="tab-ic-badges"></span>Badges</button>
+  </nav>
+</div>
+
+<div id="sheet-backdrop" class="sheet-backdrop" onclick="closeSheet()"></div>
+<div id="sheet" class="sheet"></div>
+
+<script src="js/boot.js?v=29"></script>
+<script src="js/icons.js?v=29"></script>
+<script src="js/cloud.js?v=29"></script>
+<script src="js/data.js?v=29"></script>
+<script src="js/app.js?v=29"></script>
+</body>
+</html>
