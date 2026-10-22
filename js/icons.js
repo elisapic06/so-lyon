@@ -61,7 +61,7 @@ ICONS["croissant"] = '<path d="M4 16c0-4 3.5-8 8-8s8 4 8 8c0 1-1 2-2 1.5-1.6-1-4
 ICONS["coffee"] = '<path d="M5 9h11v6a5 5 0 0 1-10 0Z"/><path d="M16 10h2a2.5 2.5 0 0 1 0 5h-2M7 6c0-1.5 1-1.5 1-3M11 6c0-1.5 1-1.5 1-3"/>';
 ICONS["museum"] = '<path d="M4 10 12 4l8 6"/><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9M3.5 19h17"/>';
 ICONS["tree"] = '<path d="M12 3 6 11h4l-4 7h12l-4-7h4Z"/><path d="M12 18v3"/>';
-ICONS["chef-hat"] = '<path d="M6 11a4 4 0 0 1 1-7.9A5 5 0 0 1 17 3.1 4 4 0 0 1 18 11v1H6Z"/><path d="M6 16h12M6 19h12"/>';
+ICONS["bouchon"] = '<path d="M5 4h14v13H5Z"/><path d="M5 8h14M5 12h14M12 4v13M8.5 4v13M15.5 4v13"/><path d="M4 21h16M7 17v4M17 17v4"/>';
 ICONS["dumbbell"] = '<path d="M7 8v8M4 9.5v5M17 8v8M20 9.5v5M7 12h10"/>';
 ICONS["museum2"] = '<path d="M12 3 4 8v2h16V8Z"/><path d="M6 10v8M10 10v8M14 10v8M18 10v8M4 20h16"/>';
 ICONS["compass"] = '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5Z"/>';

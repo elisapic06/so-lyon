@@ -20,7 +20,7 @@ const BADGES = [
   { ic: "coffee", name: "Cafés", desc: "Niveau 1 · 4/10 testés", earned: true },
   { ic: "museum", name: "Musées", desc: "1/3 visités", earned: false },
   { ic: "tree", name: "Parcs", desc: "2/5 explorés", earned: false },
-  { ic: "chef-hat", name: "Bouchons", desc: "0/3 complétés", earned: false },
+  { ic: "bouchon", name: "Bouchons", desc: "0/3 complétés", earned: false },
   { ic: "dumbbell", name: "Sport", desc: "3/10 activités", earned: false },
   { ic: "heart", name: "Popularité", desc: "18/100 likes reçus", earned: false },
   { ic: "compass", name: "Explorateur", desc: "6/20 lieux différents", earned: false },
