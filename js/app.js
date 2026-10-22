@@ -457,7 +457,13 @@ function buildMap(frame) {
   });
   places.forEach((p) => {
     const m = L.marker([p.lat, p.lon], { icon: icons[p.cat] || icons.other });
-    m.on("click", () => openPlace(p.id));
+    m.on("click", (e) => {
+      if (e && e.originalEvent) {
+        e.originalEvent.stopPropagation();
+        try { L.DomEvent.stopPropagation(e); } catch (err) {}
+      }
+      openPlace(p.id);
+    });
     cluster.addLayer(m);
   });
   mapObj.addLayer(cluster);
@@ -581,13 +587,17 @@ function openPlaceById(id) {
 }
 
 /* ---------- sheet utils ---------- */
+let sheetOpenedAt = 0;
 function openSheet(html) {
   const sheet = document.getElementById("sheet");
   sheet.innerHTML = html;
   document.getElementById("sheet-backdrop").classList.add("open");
   sheet.classList.add("open");
+  sheetOpenedAt = Date.now();
 }
-function closeSheet() {
+function closeSheet(force) {
+  // anti ghost-click : ignorer les clics dans les 500ms suivant l'ouverture
+  if (!force && Date.now() - sheetOpenedAt < 500) return;
   document.getElementById("sheet-backdrop").classList.remove("open");
   document.getElementById("sheet").classList.remove("open");
 }
