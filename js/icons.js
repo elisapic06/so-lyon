@@ -65,3 +65,8 @@ ICONS["chef-hat"] = '<path d="M6 11a4 4 0 0 1 1-7.9A5 5 0 0 1 17 3.1 4 4 0 0 1 1
 ICONS["dumbbell"] = '<path d="M7 8v8M4 9.5v5M17 8v8M20 9.5v5M7 12h10"/>';
 ICONS["museum2"] = '<path d="M12 3 4 8v2h16V8Z"/><path d="M6 10v8M10 10v8M14 10v8M18 10v8M4 20h16"/>';
 ICONS["compass"] = '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5Z"/>';
+
+/* onboarding : pictos dédiés parlants */
+ICONS["plate"] = '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/>';
+ICONS["cocktail"] = '<path d="M4 4h16l-8 9Z"/><path d="M12 13v6M8 21h8M15 6l4-2"/>';
+ICONS["theatre"] = '<path d="M3 5h18v10H3Z"/><path d="M3 5a9 4 0 0 0 18 0"/><path d="M9 19c1 1.5 5 1.5 6 0"/><path d="M9 9.5v3M15 9.5v3"/>';

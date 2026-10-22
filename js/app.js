@@ -789,11 +789,11 @@ function hydrateUserPosts(list) {
 
 /* ---------- onboarding ---------- */
 const INTERESTS = [
-  { key: "food", label: "Food", ic: "food" },
-  { key: "sortir", label: "Sortir", ic: "drink" },
-  { key: "culture", label: "Culture", ic: "culture" },
-  { key: "outdoor", label: "Nature", ic: "nature" },
-  { key: "sport", label: "Sport", ic: "sport" },
+  { key: "food", label: "Food", ic: "plate" },
+  { key: "sortir", label: "Sortir", ic: "cocktail" },
+  { key: "culture", label: "Culture", ic: "theatre" },
+  { key: "outdoor", label: "Nature", ic: "tree" },
+  { key: "sport", label: "Sport", ic: "dumbbell" },
 ];
 let myInterests = [];
 try { myInterests = JSON.parse(localStorage.getItem("so-lyon-interests")) || []; } catch (e) {}
