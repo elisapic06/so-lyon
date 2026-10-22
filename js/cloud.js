@@ -271,7 +271,7 @@ async function myConversations() {
 async function fetchMessages(otherId) {
   const { data, error } = await CLOUD.supabase
     .from("messages")
-    .select("id, sender, txt, created_at, read")
+    .select("id, sender, txt, created_at, read, shared_post, posts!messages_shared_post_fkey (id, text, place_name, photo_url)")
     .or(`and(sender.eq.${CLOUD.user.id},receiver.eq.${otherId}),and(sender.eq.${otherId},receiver.eq.${CLOUD.user.id})`)
     .order("created_at", { ascending: true })
     .limit(200);
@@ -281,12 +281,20 @@ async function fetchMessages(otherId) {
     mine: m.sender === CLOUD.user.id,
     txt: m.txt,
     when: timeAgo(m.created_at),
+    sharedPost: m.shared_post ? {
+      id: m.posts?.id,
+      text: m.posts?.text,
+      place: m.posts?.place_name,
+      photo: m.posts?.photo_url,
+    } : null,
   }));
 }
 
-async function sendMessage(otherId, txt) {
+async function sendMessage(otherId, txt, sharedPostId) {
+  const payload = { sender: CLOUD.user.id, receiver: otherId, txt: txt || " " };
+  if (sharedPostId) payload.shared_post = sharedPostId;
   const { error } = await CLOUD.supabase
-    .from("messages").insert({ sender: CLOUD.user.id, receiver: otherId, txt });
+    .from("messages").insert(payload);
   if (error) throw error;
 }
 

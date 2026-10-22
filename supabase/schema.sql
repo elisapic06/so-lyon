@@ -204,3 +204,7 @@ returns table (
   group by other_id, p.handle, p.display_name, p.avatar_emoji
   order by max(m.created_at) desc;
 $$;
+
+-- Partage de posts en messagerie : un message peut référencer un post
+alter table public.messages
+  add column if not exists shared_post uuid references public.posts(id) on delete set null;

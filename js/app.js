@@ -695,7 +695,30 @@ document.querySelector(".avatar")?.addEventListener("click", (e) => {
 });
 
 /* ---------- partage ---------- */
+let sharePendingPostId = null;
+
 async function sharePost(postId, placeName) {
+  sharePendingPostId = postId;
+  // cloud + connecté -> choix messagerie ou partage natif
+  if (CLOUD.enabled && CLOUD.user) {
+    openSheet(`
+      <div class="sheet-grab"></div>
+      <div class="sheet-body" style="padding-bottom:20px">
+        <h2 style="font-size:1.2rem">Partager ce post</h2>
+        <p style="color:var(--ink-faint);font-size:.85rem;margin-top:3px">Envoyer en message ou partager ailleurs</p>
+        <div class="sheet-cta" style="margin-top:16px">
+          <button class="scta primary" style="flex:1" onclick="pickRecipient()">${icon("message", 15)} En message</button>
+          <button class="scta" style="flex:1" onclick="nativeShare('${esc(placeName || "")}')">${icon("share", 15)} Autre</button>
+        </div>
+        <div id="share-recipients" style="margin-top:14px"></div>
+      </div>`);
+    return;
+  }
+  nativeShare(placeName);
+}
+
+async function nativeShare(placeName) {
+  closeSheet(true);
   const url = location.origin + location.pathname;
   const text = (placeName ? placeName + " — " : "") + "Découvert sur So Lyon";
   if (navigator.share) {
@@ -705,6 +728,46 @@ async function sharePost(postId, placeName) {
     await navigator.clipboard.writeText(text + " " + url);
     toast("Lien copié dans le presse-papier");
   } catch (e) { toast(url); }
+}
+
+async function pickRecipient() {
+  const box = document.getElementById("share-recipients");
+  if (!box) return;
+  box.innerHTML = '<div class="empty" style="padding:14px">Chargement…</div>';
+  try {
+    // gens suivis d'abord, puis autres profils
+    const { data: follows } = await CLOUD.supabase.from("follows")
+      .select("followed, profiles!follows_followed_fkey (id, handle, display_name)")
+      .eq("follower", CLOUD.user.id).limit(20);
+    const { data: others } = await CLOUD.supabase.from("profiles")
+      .select("id, handle, display_name").neq("id", CLOUD.user.id).limit(20);
+    const seen = new Set();
+    const people = [];
+    (follows || []).forEach((f) => {
+      if (f.profiles && !seen.has(f.profiles.id)) { seen.add(f.profiles.id); people.push(f.profiles); }
+    });
+    (others || []).forEach((p) => { if (!seen.has(p.id)) { seen.add(p.id); people.push(p); } });
+    if (!people.length) { box.innerHTML = '<div class="empty" style="padding:14px">Personne à qui envoyer pour l\'instant</div>'; return; }
+    box.innerHTML = people.slice(0, 15).map((p) => `
+      <div class="conv-row" onclick="sendPostTo('${p.id}', '${esc(p.display_name)}')">
+        <span class="c-av">${esc((p.display_name || "?")[0])}</span>
+        <div class="conv-main">
+          <div class="conv-name">${esc(p.display_name)} <span class="conv-handle">@${esc(p.handle)}</span></div>
+          <div class="conv-last">Envoyer ce post</div>
+        </div>
+      </div>`).join("");
+  } catch (e) {
+    box.innerHTML = '<div class="empty" style="padding:14px">Erreur</div>';
+  }
+}
+
+async function sendPostTo(userId, name) {
+  if (!sharePendingPostId) return;
+  try {
+    await sendMessage(userId, " ", sharePendingPostId);
+    closeSheet(true);
+    toast("Post envoyé à " + name);
+  } catch (e) { toast("Erreur : " + e.message); }
 }
 
 async function sharePlace(pName) {
@@ -1158,7 +1221,14 @@ async function loadChat() {
     const msgs = await fetchMessages(chatWithId);
     box.innerHTML = msgs.map((m) => `
       <div class="msg ${m.mine ? "mine" : ""}">
-        <div class="msg-bubble">${esc(m.txt)}</div>
+        ${m.sharedPost ? `
+        <div class="shared-post-card" onclick="closeSheet(); setTimeout(()=>{sharedPostDetail('${esc(m.sharedPost.id)}')},100)">
+          ${m.sharedPost.photo ? `<img src="${m.sharedPost.photo}" class="spc-img" loading="lazy">` : ""}
+          <div class="spc-body">
+            ${m.sharedPost.place ? `<div class="spc-place">${icon("map-pin", 12)} ${esc(m.sharedPost.place)}</div>` : ""}
+            <div class="spc-txt">${esc((m.sharedPost.text || "").slice(0, 90))}</div>
+          </div>
+        </div>` : `<div class="msg-bubble">${esc(m.txt)}</div>`}
         <div class="msg-when">${esc(m.when)}</div>
       </div>`).join("");
     await markRead(chatWithId);
@@ -1178,6 +1248,16 @@ async function sendMyMessage() {
     await sendMessage(chatWithId, txt);
     loadChat();
   } catch (e) { toast("Erreur : " + e.message); }
+}
+
+async function sharedPostDetail(postId) {
+  // retrouve le lieu du post partagé et ouvre sa fiche
+  try {
+    const { data } = await CLOUD.supabase.from("posts")
+      .select("place_id, place_name").eq("id", postId).single();
+    if (data && data.place_id) { openPlace(data.place_id); return; }
+  } catch (e) {}
+  toast("Post partagé");
 }
 
 /* ---------- profil des autres utilisateurs ---------- */
