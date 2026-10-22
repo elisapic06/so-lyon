@@ -600,6 +600,20 @@ async function loadPlaceRating(placeId) {
   } catch (e) {}
 }
 
+async function loadPlaceUserPhotos(placeId) {
+  const box = document.getElementById("place-photos");
+  if (!box || !CLOUD.enabled) return;
+  try {
+    const posts = await fetchPlacePosts(placeId, 6);
+    if (!posts.length) return;
+    box.innerHTML = `
+      <div class="section-title" style="margin:4px 2px 8px"><h2>Photos de la communauté</h2></div>
+      <div class="place-photos-grid">
+        ${posts.map((pp) => `<img src="${pp.photo_url}" loading="lazy" alt="" onclick="openUserProfile('${pp.author}')">`).join("")}
+      </div>`;
+  } catch (e) {}
+}
+
 async function rateThisPlace(placeId, stars) {
   if (!CLOUD.user) { toast("Connecte-toi pour noter"); return; }
   try {

@@ -614,3 +614,6 @@ svg.ic { vertical-align: -3px; flex-shrink: 0; }
 /* suppression post */
 .post-own-actions { display: flex; justify-content: flex-end; margin-top: 9px; }
 .post-own-actions .pa-btn { flex: none; color: var(--ink-faint); font-size: .76rem; }
+
+/* commentaire : corps du message (avatar à gauche) */
+.c-main { flex: 1; min-width: 0; }
